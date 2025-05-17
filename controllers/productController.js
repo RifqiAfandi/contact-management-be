@@ -23,34 +23,6 @@ async function getAllProducts(req, res) {
   }
 }
 
-async function createProduct(req, res) {
-  try {
-    const { productName, productUrl, sellingPrice, servingType } = req.body;
-
-    const newProduct = await Product.create({
-      productName,
-      productUrl,
-      sellingPrice,
-      servingType
-    });
-
-    res.status(201).json({
-      status: 'Success',
-      message: 'Product created successfully',
-      isSuccess: true,
-      data: newProduct
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'Failed',
-      message: error.message,
-      isSuccess: false,
-      data: null
-    });
-  }
-}
-
 module.exports = {
   getAllProducts,
-  createProduct
 };

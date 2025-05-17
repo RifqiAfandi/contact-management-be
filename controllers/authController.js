@@ -102,7 +102,67 @@ async function login(req, res) {
     }
 }
 
+async function getAllUser(req, res) {
+    try {
+        const users = await Users.findAll();
+        if (users.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'No users found',
+                isSuccess: false,
+                data: null
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Users retrieved successfully',
+            isSuccess: true,
+            data: users
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            isSuccess: false,
+            data: null
+        });
+    }
+}
+
+async function getUserById(req, res) {
+    try {
+        const { id } = req.params;
+
+        const user = await Users.findByPk(id);
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found',
+                isSuccess: false,
+                data: null
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'User retrieved successfully',
+            isSuccess: true,
+            data: user
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            isSuccess: false,
+            data: null
+        });
+    }
+}
+
 module.exports = {
     createUser,
-    login
+    login,
+    getAllUser,
+    getUserById,
 };
