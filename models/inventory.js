@@ -10,11 +10,15 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Inventory.belongsTo(models.Users, {
+        foreignKey: 'userId',
+        as: 'user'
+      });
     }
   }
   Inventory.init({
     itemName: DataTypes.STRING,
+    itemUrl: DataTypes.TEXT,
     purchasePrice: DataTypes.INTEGER,
     expiredDate: DataTypes.DATE,
     entryDate: DataTypes.DATE

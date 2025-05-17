@@ -2,21 +2,27 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Products', {
+    await queryInterface.createTable('Inventories', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      productName: {
+      itemName: {
         type: Sequelize.STRING
       },
-      sellingPrice: {
+      itemUrl: {
+        type: Sequelize.TEXT
+      },
+      purchasePrice: {
         type: Sequelize.INTEGER
       },
-      servingType: {
-        type: Sequelize.STRING
+      expiredDate: {
+        type: Sequelize.DATE
+      },
+      entryDate: {
+        type: Sequelize.DATE
       },
       createdAt: {
         allowNull: false,
@@ -29,6 +35,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Products');
+    await queryInterface.dropTable('Inventories');
   }
 };
