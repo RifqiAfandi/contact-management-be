@@ -6,13 +6,15 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your-secret-key';
 
 async function createUser(req, res) {
     try {
-        const { name, username, password, role = 'user' } = req.body;
+        const { name, username, password, role } = req.body;
 
         const existingUser = await Users.findOne({ where: { username } });
         if (existingUser) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Username already exists'
+                message: 'Username already exists',
+                isSuccess: false,
+                data: null
             });
         }
 
@@ -29,17 +31,15 @@ async function createUser(req, res) {
         res.status(201).json({
             status: 'success',
             message: 'User created successfully',
-            data: {
-                id: newUser.id,
-                name: newUser.name,
-                username: newUser.username,
-                role: newUser.role
-            }
+            isSuccess: true,
+            data: { newUser }
         });
     } catch (error) {
         res.status(500).json({
             status: 'error',
-            message: error.message
+            message: error.message,
+            isSuccess: false,
+            data: null
         });
     }
 }
@@ -52,7 +52,9 @@ async function login(req, res) {
         if (!user) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Invalid username or password'
+                message: 'Invalid username or password',
+                isSuccess: false,
+                data: null
             });
         }
 
@@ -60,7 +62,9 @@ async function login(req, res) {
         if (!isValidPassword) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Invalid username or password'
+                message: 'Invalid username or password',
+                isSuccess: false,
+                data: null
             });
         }
 
@@ -77,6 +81,7 @@ async function login(req, res) {
         res.status(200).json({
             status: 'success',
             message: 'Login successful',
+            isSuccess: true,
             data: {
                 token,
                 user: {
@@ -90,7 +95,9 @@ async function login(req, res) {
     } catch (error) {
         res.status(500).json({
             status: 'error',
-            message: error.message
+            message: error.message,
+            isSuccess: false,
+            data: null
         });
     }
 }
