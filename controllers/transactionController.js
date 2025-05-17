@@ -1,4 +1,4 @@
-const { User, Transaction } = require('../models');
+const { User, Transaction, Products } = require('../models');
 
 async function getAllTransactions(req, res) {
     try {
@@ -37,13 +37,25 @@ async function getAllTransactions(req, res) {
 
 async function createTransaction(req, res) {
     try {
-        const { userId, amount, description } = req.body;
+        const { userId, amount, description, productId } = req.body;
 
         const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({
-                success: false,
+                status: 'Failed',
                 message: 'User not found',
+                isSuccess: false,
+                data: null,
+            });
+        }
+
+        const product = await Products.findByPk(productId);
+        if (!product) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: 'Product not found',
+                isSuccess: false,
+                data: null,
             });
         }
 
@@ -53,9 +65,16 @@ async function createTransaction(req, res) {
             description,
         });
 
+
         res.status(201).json({
-            success: true,
-            data: transaction,
+            status: 'Success',
+            message: 'Transaction created successfully',
+            isSuccess: true,
+            data: {
+                user,
+                transaction,
+                product,
+            },
         });
     } catch (error) {
         console.error(error);
