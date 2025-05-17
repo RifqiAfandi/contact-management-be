@@ -1,16 +1,8 @@
-const {Product, Stock} = require('../models');
+const {Product} = require('../models');
 
 async function getAllProducts(req, res) {
   try {
-    const products = await Product.findAll({
-      include: [
-        {
-          model: Stock,
-          as: 'stock',
-          attributes: ['total', 'expiredDate', 'entryDate']
-        }
-      ]
-    });
+    const products = await Product.findAll({});
 
     if (products.length === 0) {
       return res.status(404).json({

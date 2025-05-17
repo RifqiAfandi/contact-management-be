@@ -37,7 +37,7 @@ async function getAllTransactions(req, res) {
 
 async function createTransaction(req, res) {
     try {
-        const { userId, amount, description, productId } = req.body;
+        const { userId, date, total, subTotal,  description, productId } = req.body;
 
         const user = await User.findByPk(userId);
         if (!user) {
@@ -60,7 +60,10 @@ async function createTransaction(req, res) {
         }
 
         const transaction = await Transaction.create({
-            userId,
+            userId, 
+            date, 
+            total, 
+            subTotal,
             amount,
             description,
         });
