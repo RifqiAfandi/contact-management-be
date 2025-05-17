@@ -1,6 +1,7 @@
 const { Users } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const imagekit = require('../lib/imagekit');
 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'your-secret-key';
 
@@ -21,19 +22,41 @@ async function createUser(req, res) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const newUser = await Users.create({
-            name,
-            username,
-            password: hashedPassword,
-            role
-        });
+        if (req.file) {
+            const file = req.file;
+            const split = file.originalname.split('.');
+            const ext = split[split.length - 1];
 
-        res.status(201).json({
-            status: 'success',
-            message: 'User created successfully',
-            isSuccess: true,
-            data: { newUser }
-        });
+            const uploadImg = await imagekit.upload({
+                file: file.buffer,
+                fileName: `profile-${username}-${Date.now()}.${ext}`,
+            });
+
+            if (!uploadImg) {
+                return res.status(500).json({
+                    status: 'error',
+                    message: 'Image upload failed',
+                    isSuccess: false,
+                    data: null
+                });
+            }
+            else if (uploadImg) {
+                const newUser = await Users.create({
+                    name,
+                    username,
+                    password: hashedPassword,
+                    role,
+                    profilUrl: uploadImg.url
+                });
+        
+                res.status(201).json({
+                    status: 'success',
+                    message: 'User created successfully',
+                    isSuccess: true,
+                    data: { newUser }
+                });
+            }
+        }
     } catch (error) {
         res.status(500).json({
             status: 'error',
@@ -160,9 +183,108 @@ async function getUserById(req, res) {
     }
 }
 
+async function updateUser(req, res) {
+    try {
+        const { id } = req.params;
+        const { name, username, password, role } = req.body;
+
+        const user = await Users.findByPk(id);
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found',
+                isSuccess: false,
+                data: null
+            });
+        }
+
+        const updateData = {
+            name,
+            username,
+            role
+        };
+
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(password, salt);
+        }
+
+        if (req.file) {
+            const file = req.file;
+            const split = file.originalname.split('.');
+            const ext = split[split.length - 1];
+
+            const uploadImg = await imagekit.upload({
+                file: file.buffer,
+                fileName: `profile-${username}-${Date.now()}.${ext}`,
+            });
+
+            if (!uploadImg) {
+                return res.status(500).json({
+                    status: 'error',
+                    message: 'Image upload failed',
+                    isSuccess: false,
+                    data: null
+                });
+            }
+            updateData.profilUrl = uploadImg.url;
+        }
+
+        await user.update(updateData);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'User updated successfully',
+            isSuccess: true,
+            data: user
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            isSuccess: false,
+            data: null
+        });
+    }
+}
+
+async function deleteUser(req, res) {
+    try {
+        const { id } = req.params;
+
+        const user = await Users.findByPk(id);
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found',
+                isSuccess: false,
+                data: null
+            });
+        }
+
+        await user.destroy();
+
+        res.status(200).json({
+            status: 'success',
+            message: 'User deleted successfully',
+            isSuccess: true,
+            data: null
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            isSuccess: false,
+            data: null
+        });
+    }
+}
+
 module.exports = {
     createUser,
     login,
     getAllUser,
     getUserById,
+    updateUser,
+    deleteUser
 };
