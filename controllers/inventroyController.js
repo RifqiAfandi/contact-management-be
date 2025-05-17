@@ -55,7 +55,47 @@ async function createInventory(req, res) {
   }
 }
 
+async function updateInventory(req, res) {
+  try {
+    const { id } = req.params;
+    const { itemName, itemUrl, purchasePrice, expiredDate, entryDate } = req.body;
+
+    const inventoryItem = await Inventory.findByPk(id);
+    if (!inventoryItem) {
+      return res.status(404).json({
+        status: 'Failed',
+        message: 'Inventory item not found',
+        isSuccess: false,
+        data: null
+      });
+    }
+
+    await inventoryItem.update({
+      itemName,
+      itemUrl,
+      purchasePrice,
+      expiredDate,
+      entryDate
+    });
+
+    res.status(200).json({
+      status: 'Success',
+      message: 'Inventory item updated successfully',
+      isSuccess: true,
+      data: inventoryItem
+    });
+  } catch (error) {
+    res.status(500).json({ 
+        status: 'Failed',
+        message: error.message,
+        isSuccess: false,
+        data: null 
+    });
+  }
+}
+
 module.exports = {
   getAllInventory,
-  createInventory
+  createInventory,
+  updateInventory
 };
