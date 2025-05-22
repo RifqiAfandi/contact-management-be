@@ -1,22 +1,22 @@
-const {Product} = require('../models');
+const { Products } = require("../models");
 
 async function getAllProducts(req, res) {
   try {
-    const products = await Product.findAll({});
+    const products = await Products.findAll({});
 
     if (products.length === 0) {
       return res.status(404).json({
-        status: 'Failed', 
-        message: 'No products found',
+        status: "Failed",
+        message: "No products found",
         isSuccess: false,
-        data: null 
+        data: null,
       });
     }
     res.status(200).json({
-      status: 'Success',
-      message: 'Products retrieved successfully',
+      status: "Success",
+      message: "Products retrieved successfully",
       isSuccess: true,
-      data: products
+      data: products,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
