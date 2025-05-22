@@ -8,8 +8,8 @@ const multerFiltering = (req, file, cb) => {
   }
 };
 
-const uploads = multer({
+const uploader = multer({
   fileFilter: multerFiltering,
 });
 
-module.exports = uploads;
+module.exports = { uploader };
