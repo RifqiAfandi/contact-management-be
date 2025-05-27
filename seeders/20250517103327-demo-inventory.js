@@ -73,7 +73,7 @@ module.exports = {
       {
         itemName: "Paper Cups",
         itemUrl:
-          "https://ik.imagekit.io/RifqiAfandi/Paper%20Cups.jfif?updatedAt=1748363660850",
+          "https://ik.imagekit.io/RifqiAfandi/Paper%20Cup.jfif?updatedAt=1748363660846",
         purchasePrice: 80000,
         expiredDate: new Date("2027-12-31"),
         entryDate: new Date("2025-02-14"),
@@ -106,7 +106,7 @@ module.exports = {
       {
         itemName: "Ice Cubes",
         itemUrl:
-          "https://ik.imagekit.io/RifqiAfandi/Ice%20Cubes.jfif?updatedAt=1748363660850",
+          "https://ik.imagekit.io/RifqiAfandi/Ice%20Cube.jfif?updatedAt=1748363660948",
         purchasePrice: 20000,
         expiredDate: new Date("2025-06-01"),
         entryDate: new Date("2025-05-17"),
