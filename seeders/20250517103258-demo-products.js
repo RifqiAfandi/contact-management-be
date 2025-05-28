@@ -9,7 +9,7 @@ module.exports = {
         productUrl:
           "https://ik.imagekit.io/RifqiAfandi/Coffe%20Latte.jfif?updatedAt=1748331977880",
         sellingPrice: 25000,
-        category: "Drink",
+        category: "Minuman",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -19,7 +19,7 @@ module.exports = {
         productUrl:
           "https://ik.imagekit.io/RifqiAfandi/Cappucino.jfif?updatedAt=1748331977733",
         sellingPrice: 28000,
-        category: "Drink",
+        category: "Minuman",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -29,7 +29,7 @@ module.exports = {
         productUrl:
           "https://ik.imagekit.io/RifqiAfandi/Green%20Tea.jfif?updatedAt=1748331977924",
         sellingPrice: 20000,
-        category: "Drink",
+        category: "Minuman",
         userId: 2,
         createdAt: new Date(),
         updatedAt: new Date(),
