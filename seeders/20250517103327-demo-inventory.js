@@ -6,7 +6,7 @@ module.exports = {
     return queryInterface.bulkInsert("Inventories", [
       {
         itemName: "Coffee Beans Arabica",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Coffe%20Bean%20Arabica.jfif?updatedAt=1748363660950",
         purchasePrice: 100000,
         expiredDate: new Date("2026-05-17"),
@@ -17,7 +17,7 @@ module.exports = {
       },
       {
         itemName: "Fresh Milk",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Fresh%20Milk.jfif?updatedAt=1748363660854",
         purchasePrice: 25000,
         expiredDate: new Date("2025-05-24"),
@@ -28,7 +28,7 @@ module.exports = {
       },
       {
         itemName: "Green Tea Powder",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Green%20Tea%20Powder.jfif?updatedAt=1748363661002",
         purchasePrice: 50000,
         expiredDate: new Date("2026-01-17"),
@@ -39,7 +39,7 @@ module.exports = {
       },
       {
         itemName: "Sugar",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Sugar.jfif?updatedAt=1748363660985",
         purchasePrice: 15000,
         expiredDate: new Date("2026-12-31"),
@@ -50,7 +50,7 @@ module.exports = {
       },
       {
         itemName: "Cocoa Powder",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Cocoa%20Powder.jfif?updatedAt=1748363660851",
         purchasePrice: 75000,
         expiredDate: new Date("2026-08-15"),
@@ -61,7 +61,7 @@ module.exports = {
       },
       {
         itemName: "Vanilla Syrup",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Vanilla%20Syrup.jfif?updatedAt=1748363660850",
         purchasePrice: 35000,
         expiredDate: new Date("2025-11-30"),
@@ -72,7 +72,7 @@ module.exports = {
       },
       {
         itemName: "Paper Cups",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Paper%20Cup.jfif?updatedAt=1748363660846",
         purchasePrice: 80000,
         expiredDate: new Date("2027-12-31"),
@@ -83,7 +83,7 @@ module.exports = {
       },
       {
         itemName: "Whipped Cream",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Whipped%20Cream.jfif?updatedAt=1748363660850",
         purchasePrice: 45000,
         expiredDate: new Date("2025-07-20"),
@@ -94,7 +94,7 @@ module.exports = {
       },
       {
         itemName: "Cinnamon Powder",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Cinnamon%20Powder.jfif?updatedAt=1748363661037",
         purchasePrice: 30000,
         expiredDate: new Date("2026-10-05"),
@@ -105,7 +105,7 @@ module.exports = {
       },
       {
         itemName: "Ice Cubes",
-        itemUrl:
+        imageUrl:
           "https://ik.imagekit.io/RifqiAfandi/Ice%20Cube.jfif?updatedAt=1748363660948",
         purchasePrice: 20000,
         expiredDate: new Date("2025-06-01"),
