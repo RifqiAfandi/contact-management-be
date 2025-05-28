@@ -32,7 +32,7 @@ module.exports = {
       },
       {
         name: "John Doe",
-        username: "johndoe",
+        username: "user1",
         password: hashedPasswords[1],
         role: "kasir",
         profilUrl: "https://example.com/john.jpg",
@@ -41,7 +41,7 @@ module.exports = {
       },
       {
         name: "Jane Smith",
-        username: "janesmith",
+        username: "user2",
         password: hashedPasswords[2],
         role: "gudang",
         profilUrl: "https://example.com/jane.jpg",

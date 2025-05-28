@@ -1,5 +1,5 @@
-const { Inventory } = require('../models');
-const imagekit = require('../lib/imagekit');
+const { Inventory } = require("../models");
+const imagekit = require("../lib/imagekit");
 
 async function getAllInventory(req, res) {
   try {
@@ -7,34 +7,49 @@ async function getAllInventory(req, res) {
 
     if (inventoryItems.length === 0) {
       return res.status(404).json({
-        status: 'Failed', 
-        message: 'No inventory items found',
+        status: "Failed",
+        message: "No inventory items found",
         isSuccess: false,
-        data: null 
+        data: null,
       });
     }
     res.status(200).json({
-      status: 'Success',
-      message: 'Inventory items retrieved successfully',
+      status: "Success",
+      message: "Inventory items retrieved successfully",
       isSuccess: true,
-      data: inventoryItems
+      data: inventoryItems,
     });
   } catch (error) {
-    res.status(500).json({ 
-        message: error.message,
-        isSuccess: false,
-        data: null 
+    res.status(500).json({
+      message: error.message,
+      isSuccess: false,
+      data: null,
     });
   }
 }
 
 async function createInventory(req, res) {
   try {
-    if(req.file){
+    const { itemName, purchasePrice, expiredDate, entryDate, userId } =
+      req.body;
+
+    // Validasi userId
+    if (!userId) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "userId is required",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    let imageUrl = null;
+
+    // Handle file upload jika ada
+    if (req.file) {
       const file = req.file;
-      const split = file.originalname.split('.');
+      const split = file.originalname.split(".");
       const ext = split[split.length - 1];
-      const { itemName, purchasePrice, expiredDate, entryDate } = req.body;
 
       const uploadImg = await imagekit.upload({
         file: file.buffer,
@@ -43,35 +58,37 @@ async function createInventory(req, res) {
 
       if (!uploadImg) {
         return res.status(500).json({
-          status: 'Failed',
-          message: 'Image upload failed',
+          status: "Failed",
+          message: "Image upload failed",
           isSuccess: false,
-          data: null
+          data: null,
         });
       }
-      else if (uploadImg) {
-        const newInventoryItem = await Inventory.create({
-          itemName,
-          purchasePrice,
-          expiredDate,
-          entryDate,
-          imageUrl: uploadImg.url
-        });
 
-        res.status(201).json({
-          status: 'Success',
-          message: 'Inventory item created successfully',
-          isSuccess: true,
-          data: newInventoryItem
-        });
-      }
+      imageUrl = uploadImg.url;
     }
+
+    const newInventoryItem = await Inventory.create({
+      itemName,
+      purchasePrice,
+      expiredDate,
+      entryDate,
+      userId,
+      imageUrl, // atau itemUrl sesuai dengan model
+    });
+
+    res.status(201).json({
+      status: "Success",
+      message: "Inventory item created successfully",
+      isSuccess: true,
+      data: newInventoryItem,
+    });
   } catch (error) {
-    res.status(500).json({ 
-        status: 'Failed',
-        message: error.message,
-        isSuccess: false,
-        data: null 
+    res.status(500).json({
+      status: "Failed",
+      message: error.message,
+      isSuccess: false,
+      data: null,
     });
   }
 }
@@ -84,10 +101,10 @@ async function updateInventory(req, res) {
     const inventoryItem = await Inventory.findByPk(id);
     if (!inventoryItem) {
       return res.status(404).json({
-        status: 'Failed',
-        message: 'Inventory item not found',
+        status: "Failed",
+        message: "Inventory item not found",
         isSuccess: false,
-        data: null
+        data: null,
       });
     }
 
@@ -95,12 +112,13 @@ async function updateInventory(req, res) {
       itemName,
       purchasePrice,
       expiredDate,
-      entryDate
+      entryDate,
     };
 
+    // Handle file upload jika ada
     if (req.file) {
       const file = req.file;
-      const split = file.originalname.split('.');
+      const split = file.originalname.split(".");
       const ext = split[split.length - 1];
 
       const uploadImg = await imagekit.upload({
@@ -110,14 +128,14 @@ async function updateInventory(req, res) {
 
       if (!uploadImg) {
         return res.status(500).json({
-          status: 'Failed',
-          message: 'Image upload failed',
+          status: "Failed",
+          message: "Image upload failed",
           isSuccess: false,
-          data: null
+          data: null,
         });
       }
 
-      updateData.imageUrl = uploadImg.url;
+      updateData.imageUrl = uploadImg.url; // atau itemUrl sesuai dengan model
     }
 
     await inventoryItem.update(updateData);
@@ -125,18 +143,17 @@ async function updateInventory(req, res) {
     const updatedItem = await Inventory.findByPk(id);
 
     res.status(200).json({
-      status: 'Success',
-      message: 'Inventory item updated successfully',
+      status: "Success",
+      message: "Inventory item updated successfully",
       isSuccess: true,
-      data: updatedItem
+      data: updatedItem,
     });
-
   } catch (error) {
-    res.status(500).json({ 
-      status: 'Failed',
+    res.status(500).json({
+      status: "Failed",
       message: error.message,
       isSuccess: false,
-      data: null 
+      data: null,
     });
   }
 }
@@ -148,28 +165,27 @@ async function deleteInventory(req, res) {
     const inventoryItem = await Inventory.findByPk(id);
     if (!inventoryItem) {
       return res.status(404).json({
-        status: 'Failed',
-        message: 'Inventory item not found',
+        status: "Failed",
+        message: "Inventory item not found",
         isSuccess: false,
-        data: null
+        data: null,
       });
     }
 
     await inventoryItem.destroy();
 
     res.status(200).json({
-      status: 'Success',
-      message: 'Inventory item deleted successfully',
+      status: "Success",
+      message: "Inventory item deleted successfully",
       isSuccess: true,
-      data: null
+      data: null,
     });
-
   } catch (error) {
-    res.status(500).json({ 
-      status: 'Failed',
+    res.status(500).json({
+      status: "Failed",
       message: error.message,
       isSuccess: false,
-      data: null 
+      data: null,
     });
   }
 }
@@ -178,5 +194,5 @@ module.exports = {
   getAllInventory,
   createInventory,
   updateInventory,
-  deleteInventory
+  deleteInventory,
 };

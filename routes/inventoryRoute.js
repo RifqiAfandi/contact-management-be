@@ -2,18 +2,21 @@ const express = require("express");
 const router = express.Router();
 const inventoryController = require("../controllers/inventoryController");
 const { uploader } = require("../middlewares/uploader");
+const { authenticateToken } = require("../middlewares/authMiddleware");
 
-router.get("/", inventoryController.getAllInventory);
+router.get("/", authenticateToken, inventoryController.getAllInventory);
 router.post(
   "/",
+  authenticateToken,
   uploader.single("inventoryImg"),
   inventoryController.createInventory
 );
 router.put(
   "/:id",
+  authenticateToken,
   uploader.single("inventoryImg"),
   inventoryController.updateInventory
 );
-router.delete("/:id", inventoryController.deleteInventory);
+router.delete("/:id", authenticateToken, inventoryController.deleteInventory);
 
 module.exports = router;

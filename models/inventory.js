@@ -16,17 +16,51 @@ module.exports = (sequelize, DataTypes) => {
   }
   Inventory.init(
     {
-      itemName: DataTypes.STRING,
-      itemUrl: DataTypes.TEXT,
-      purchasePrice: DataTypes.INTEGER,
-      expiredDate: DataTypes.DATE,
-      entryDate: DataTypes.DATE,
+      itemName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: true,
+          notNull: {
+            msg: "Item name is required",
+          },
+        },
+      },
+      imageUrl: {
+        // Diganti dari itemUrl ke imageUrl untuk konsistensi
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      purchasePrice: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+          min: 0,
+          notNull: {
+            msg: "Purchase price is required",
+          },
+        },
+      },
+      expiredDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      entryDate: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
           model: "Users",
           key: "id",
+        },
+        validate: {
+          notNull: {
+            msg: "User ID is required",
+          },
         },
       },
     },
