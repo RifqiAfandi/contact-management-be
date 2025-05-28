@@ -30,14 +30,18 @@ async function getAllInventory(req, res) {
 
 async function createInventory(req, res) {
   try {
+    console.log("📝 Request body:", req.body);
+    console.log("📁 Request file:", req.file);
+
     const { itemName, purchasePrice, expiredDate, entryDate, userId } =
       req.body;
 
-    // Validasi userId
-    if (!userId) {
+    // Validasi required fields
+    if (!itemName || !purchasePrice || !entryDate || !userId) {
       return res.status(400).json({
         status: "Failed",
-        message: "userId is required",
+        message:
+          "Missing required fields: itemName, purchasePrice, entryDate, userId",
         isSuccess: false,
         data: null,
       });
@@ -51,31 +55,44 @@ async function createInventory(req, res) {
       const split = file.originalname.split(".");
       const ext = split[split.length - 1];
 
-      const uploadImg = await imagekit.upload({
-        file: file.buffer,
-        fileName: `${split[0]}-${Date.now()}.${ext}`,
-      });
+      try {
+        const uploadImg = await imagekit.upload({
+          file: file.buffer,
+          fileName: `${split[0]}-${Date.now()}.${ext}`,
+        });
 
-      if (!uploadImg) {
+        if (!uploadImg || !uploadImg.url) {
+          return res.status(500).json({
+            status: "Failed",
+            message: "Image upload failed",
+            isSuccess: false,
+            data: null,
+          });
+        }
+
+        imageUrl = uploadImg.url;
+        console.log("✅ Image uploaded successfully:", imageUrl);
+      } catch (uploadError) {
+        console.error("❌ ImageKit upload error:", uploadError);
         return res.status(500).json({
           status: "Failed",
-          message: "Image upload failed",
+          message: "Image upload failed: " + uploadError.message,
           isSuccess: false,
           data: null,
         });
       }
-
-      imageUrl = uploadImg.url;
     }
 
     const newInventoryItem = await Inventory.create({
       itemName,
-      purchasePrice,
-      expiredDate,
+      purchasePrice: parseInt(purchasePrice),
+      expiredDate: expiredDate || null,
       entryDate,
-      userId,
-      imageUrl, // atau itemUrl sesuai dengan model
+      userId: parseInt(userId),
+      imageUrl, // Pastikan field name sesuai dengan model
     });
+
+    console.log("✅ Inventory item created:", newInventoryItem.id);
 
     res.status(201).json({
       status: "Success",
@@ -84,6 +101,7 @@ async function createInventory(req, res) {
       data: newInventoryItem,
     });
   } catch (error) {
+    console.error("❌ Create inventory error:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,
@@ -95,6 +113,9 @@ async function createInventory(req, res) {
 
 async function updateInventory(req, res) {
   try {
+    console.log("📝 Update request body:", req.body);
+    console.log("📁 Update request file:", req.file);
+
     const { id } = req.params;
     const { itemName, purchasePrice, expiredDate, entryDate } = req.body;
 
@@ -109,10 +130,12 @@ async function updateInventory(req, res) {
     }
 
     let updateData = {
-      itemName,
-      purchasePrice,
-      expiredDate,
-      entryDate,
+      itemName: itemName || inventoryItem.itemName,
+      purchasePrice: purchasePrice
+        ? parseInt(purchasePrice)
+        : inventoryItem.purchasePrice,
+      expiredDate: expiredDate || inventoryItem.expiredDate,
+      entryDate: entryDate || inventoryItem.entryDate,
     };
 
     // Handle file upload jika ada
@@ -121,26 +144,38 @@ async function updateInventory(req, res) {
       const split = file.originalname.split(".");
       const ext = split[split.length - 1];
 
-      const uploadImg = await imagekit.upload({
-        file: file.buffer,
-        fileName: `${split[0]}-${Date.now()}.${ext}`,
-      });
+      try {
+        const uploadImg = await imagekit.upload({
+          file: file.buffer,
+          fileName: `${split[0]}-${Date.now()}.${ext}`,
+        });
 
-      if (!uploadImg) {
+        if (!uploadImg || !uploadImg.url) {
+          return res.status(500).json({
+            status: "Failed",
+            message: "Image upload failed",
+            isSuccess: false,
+            data: null,
+          });
+        }
+
+        updateData.imageUrl = uploadImg.url;
+        console.log("✅ New image uploaded:", uploadImg.url);
+      } catch (uploadError) {
+        console.error("❌ ImageKit upload error:", uploadError);
         return res.status(500).json({
           status: "Failed",
-          message: "Image upload failed",
+          message: "Image upload failed: " + uploadError.message,
           isSuccess: false,
           data: null,
         });
       }
-
-      updateData.imageUrl = uploadImg.url; // atau itemUrl sesuai dengan model
     }
 
     await inventoryItem.update(updateData);
-
     const updatedItem = await Inventory.findByPk(id);
+
+    console.log("✅ Inventory item updated:", updatedItem.id);
 
     res.status(200).json({
       status: "Success",
@@ -149,6 +184,7 @@ async function updateInventory(req, res) {
       data: updatedItem,
     });
   } catch (error) {
+    console.error("❌ Update inventory error:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,

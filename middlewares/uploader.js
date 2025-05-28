@@ -1,15 +1,15 @@
 const multer = require("multer");
 
-const multerFiltering = (req, file, cb) => {
-  if (file.mimetype === "image/png" || file.mimetype === "image/jpeg") {
-    cb(null, true);
-  } else {
-    cb(new Error("File format is not valid"), false);
-  }
-};
-
-const uploader = multer({
-  fileFilter: multerFiltering,
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"), false);
+    }
+  },
 });
 
-module.exports = { uploader };
+module.exports = { uploader: upload };

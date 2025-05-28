@@ -8,13 +8,13 @@ router.get("/", authenticateToken, inventoryController.getAllInventory);
 router.post(
   "/",
   authenticateToken,
-  uploader.single("inventoryImg"),
+  uploader.single("image"),
   inventoryController.createInventory
 );
 router.put(
   "/:id",
   authenticateToken,
-  uploader.single("inventoryImg"),
+  uploader.single("image"),
   inventoryController.updateInventory
 );
 router.delete("/:id", authenticateToken, inventoryController.deleteInventory);
