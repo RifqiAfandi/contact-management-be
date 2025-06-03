@@ -3,7 +3,17 @@ const imagekit = require("../lib/imagekit");
 
 async function getAllInventory(req, res) {
   try {
-    const inventoryItems = await Inventory.findAll({});
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows: inventoryItems } = await Inventory.findAndCountAll({
+      limit: limit,
+      offset: offset,
+      order: [["createdAt", "DESC"]],
+    });
+
+    const totalPages = Math.ceil(count / limit);
 
     if (inventoryItems.length === 0) {
       return res.status(404).json({
@@ -11,13 +21,26 @@ async function getAllInventory(req, res) {
         message: "No inventory items found",
         isSuccess: false,
         data: null,
+        pagination: {
+          currentPage: page,
+          totalPages: totalPages,
+          totalItems: count,
+          itemsPerPage: limit,
+        },
       });
     }
+
     res.status(200).json({
       status: "Success",
       message: "Inventory items retrieved successfully",
       isSuccess: true,
       data: inventoryItems,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: count,
+        itemsPerPage: limit,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -36,7 +59,6 @@ async function createInventory(req, res) {
     const { itemName, purchasePrice, expiredDate, entryDate, userId } =
       req.body;
 
-    // Validasi required fields
     if (!itemName || !purchasePrice || !entryDate || !userId) {
       return res.status(400).json({
         status: "Failed",
@@ -49,7 +71,6 @@ async function createInventory(req, res) {
 
     let imageUrl = null;
 
-    // Handle file upload jika ada
     if (req.file) {
       const file = req.file;
       const split = file.originalname.split(".");
@@ -89,7 +110,7 @@ async function createInventory(req, res) {
       expiredDate: expiredDate || null,
       entryDate,
       userId: parseInt(userId),
-      imageUrl, // Pastikan field name sesuai dengan model
+      imageUrl,
     });
 
     console.log("✅ Inventory item created:", newInventoryItem.id);
@@ -138,7 +159,6 @@ async function updateInventory(req, res) {
       entryDate: entryDate || inventoryItem.entryDate,
     };
 
-    // Handle file upload jika ada
     if (req.file) {
       const file = req.file;
       const split = file.originalname.split(".");
