@@ -3,14 +3,51 @@ const imagekit = require("../lib/imagekit");
 
 async function getAllInventory(req, res) {
   try {
+    // Query params
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const sortField = req.query.sortField || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
+    const { itemName, entryDate, expiredDate } = req.query;
 
+    // Build where clause
+    const { Op } = require("sequelize");
+    const where = {};
+    if (itemName) {
+      where.itemName = { [Op.like]: `%${itemName}%` };
+    }
+    if (entryDate) {
+      // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
+      if (req.query.entryDate_gte || req.query.entryDate_lte) {
+        where.entryDate = {};
+        if (req.query.entryDate_gte)
+          where.entryDate[Op.gte] = req.query.entryDate_gte;
+        if (req.query.entryDate_lte)
+          where.entryDate[Op.lte] = req.query.entryDate_lte;
+      } else {
+        where.entryDate = entryDate;
+      }
+    }
+    if (expiredDate) {
+      // expiredDate can be a single date, or range: expiredDate_gte, expiredDate_lte
+      if (req.query.expiredDate_gte || req.query.expiredDate_lte) {
+        where.expiredDate = {};
+        if (req.query.expiredDate_gte)
+          where.expiredDate[Op.gte] = req.query.expiredDate_gte;
+        if (req.query.expiredDate_lte)
+          where.expiredDate[Op.lte] = req.query.expiredDate_lte;
+      } else {
+        where.expiredDate = expiredDate;
+      }
+    }
+
+    // Query with filters, sorting, and pagination
     const { count, rows: inventoryItems } = await Inventory.findAndCountAll({
-      limit: limit,
-      offset: offset,
-      order: [["createdAt", "DESC"]],
+      where,
+      limit,
+      offset,
+      order: [[sortField, sortOrder]],
     });
 
     const totalPages = Math.ceil(count / limit);
