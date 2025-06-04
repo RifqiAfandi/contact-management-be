@@ -2,7 +2,38 @@ const { Products } = require("../models");
 
 async function getAllProducts(req, res) {
   try {
-    const products = await Products.findAll({});
+    // Query params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const sortField = req.query.sortField || "id";
+    const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
+    const { productName, category, minPrice, maxPrice } = req.query;
+
+    // Build where clause
+    const { Op } = require("sequelize");
+    const where = {};
+    if (productName) {
+      where.productName = { [Op.like]: `%${productName}%` };
+    }
+    if (category) {
+      where.category = category;
+    }
+    if (minPrice || maxPrice) {
+      where.sellingPrice = {};
+      if (minPrice) where.sellingPrice[Op.gte] = parseFloat(minPrice);
+      if (maxPrice) where.sellingPrice[Op.lte] = parseFloat(maxPrice);
+    }
+
+    // Query with filters, sorting, and pagination
+    const { count, rows: products } = await Products.findAndCountAll({
+      where,
+      limit,
+      offset,
+      order: [[sortField, sortOrder]],
+    });
+
+    const totalPages = Math.ceil(count / limit);
 
     if (products.length === 0) {
       return res.status(404).json({
@@ -10,6 +41,12 @@ async function getAllProducts(req, res) {
         message: "No products found",
         isSuccess: false,
         data: null,
+        pagination: {
+          currentPage: page,
+          totalPages: totalPages,
+          totalItems: count,
+          itemsPerPage: limit,
+        },
       });
     }
     res.status(200).json({
@@ -17,6 +54,12 @@ async function getAllProducts(req, res) {
       message: "Products retrieved successfully",
       isSuccess: true,
       data: products,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: count,
+        itemsPerPage: limit,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
