@@ -126,11 +126,27 @@ async function login(req, res) {
 
 async function getAllUser(req, res) {
   try {
+    // Parsing query params
     const page = parseInt(req.query.page) || 1;
-    const limit = 5;
+    const limit = parseInt(req.query.limit) || 5;
     const offset = (page - 1) * limit;
+    const sortField = req.query.sortField || "id";
+    const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
+    const { role, name } = req.query;
 
+    // Build where clause
+    const where = {};
+    if (role) {
+      where.role = role;
+    }
+    if (name) {
+      where.name = { [require("sequelize").Op.like]: `%${name}%` };
+    }
+
+    // Query with filters, sorting, and pagination
     const { count, rows: users } = await Users.findAndCountAll({
+      where,
+      order: [[sortField, sortOrder]],
       limit,
       offset,
     });
