@@ -12,9 +12,6 @@ module.exports = {
       name: {
         type: Sequelize.STRING
       },
-      profilUrl: {
-        type: Sequelize.TEXT
-      },
       username: {
         type: Sequelize.STRING
       },
