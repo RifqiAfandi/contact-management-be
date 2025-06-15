@@ -191,8 +191,132 @@ async function getTransactionById(req, res) {
   }
 }
 
+async function getMonthlyRevenue(req, res) {
+  try {
+    const { month } = req.query; // Format: YYYY-MM
+    
+    if (!month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Month parameter is required (format: YYYY-MM)",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    // Parse month and create date range
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(year, monthNum - 1, 1); // First day of month
+    const endDate = new Date(year, monthNum, 0); // Last day of month
+    
+    const { Op } = require("sequelize");
+    const { fn, col } = require("sequelize");
+
+    // Calculate total revenue for the month
+    const result = await Transactions.findOne({
+      attributes: [
+        [fn('COALESCE', fn('SUM', col('total')), 0), 'totalRevenue']
+      ],
+      where: {
+        createdAt: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const totalRevenue = parseFloat(result.dataValues.totalRevenue) || 0;
+
+    res.status(200).json({
+      status: "success",
+      message: "Monthly revenue retrieved successfully",
+      isSuccess: true,
+      data: {
+        month,
+        totalRevenue,
+        period: {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        }
+      },
+    });
+  } catch (error) {
+    console.error("Error getting monthly revenue:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
+async function checkMonthlyData(req, res) {
+  try {
+    const { month } = req.query; // Format: YYYY-MM
+    
+    if (!month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Month parameter is required (format: YYYY-MM)",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    // Parse month and create date range
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(year, monthNum - 1, 1); // First day of month
+    const endDate = new Date(year, monthNum, 0); // Last day of month
+    
+    const { Op } = require("sequelize");
+
+    // Check if there are any transactions in this month
+    const transactionCount = await Transactions.count({
+      where: {
+        createdAt: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    // Check if there are any inventory entries in this month
+    const { Inventory } = require("../models");
+    const inventoryCount = await Inventory.count({
+      where: {
+        entryDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const hasData = transactionCount > 0 || inventoryCount > 0;
+
+    res.status(200).json({
+      status: "success",
+      message: "Data check completed",
+      isSuccess: true,
+      data: {
+        month,
+        hasData,
+        transactionCount,
+        inventoryCount
+      },
+    });
+  } catch (error) {
+    console.error("Error checking monthly data:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
 module.exports = {
   getAllTransactions,
   getTransactionById,
   createTransaction,
+  getMonthlyRevenue,
+  checkMonthlyData,
 };

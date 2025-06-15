@@ -283,9 +283,69 @@ async function deleteInventory(req, res) {
   }
 }
 
+async function getMonthlyExpenses(req, res) {
+  try {
+    const { month } = req.query; // Format: YYYY-MM
+    
+    if (!month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Month parameter is required (format: YYYY-MM)",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    // Parse month and create date range
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(year, monthNum - 1, 1); // First day of month
+    const endDate = new Date(year, monthNum, 0); // Last day of month
+    
+    const { Op } = require("sequelize");
+    const { fn, col, literal } = require("sequelize");
+
+    // Calculate total expenses for the month
+    const result = await Inventory.findOne({
+      attributes: [
+        [fn('COALESCE', fn('SUM', col('purchasePrice')), 0), 'totalExpenses']
+      ],
+      where: {
+        entryDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const totalExpenses = parseFloat(result.dataValues.totalExpenses) || 0;
+
+    res.status(200).json({
+      status: "success",
+      message: "Monthly expenses retrieved successfully",
+      isSuccess: true,
+      data: {
+        month,
+        totalExpenses,
+        period: {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        }
+      },
+    });
+  } catch (error) {
+    console.error("Error getting monthly expenses:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
 module.exports = {
   getAllInventory,
   createInventory,
   updateInventory,
   deleteInventory,
+  getMonthlyExpenses,
 };
