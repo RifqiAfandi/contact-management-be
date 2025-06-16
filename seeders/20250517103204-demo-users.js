@@ -17,12 +17,11 @@ module.exports = {
     const hashedPasswords = await Promise.all([
       bcrypt.hash("admin123", 10),
       bcrypt.hash("user123", 10),
-      bcrypt.hash("user456", 10),
     ]);
 
     return queryInterface.bulkInsert("Users", [
       {
-        name: "Admin User",
+        name: "Admin",
         username: "admin",
         password: hashedPasswords[0],
         role: "admin",
@@ -30,7 +29,7 @@ module.exports = {
         updatedAt: new Date(),
       },
       {
-        name: "John Doe",
+        name: "Rifqi",
         username: "user1",
         password: hashedPasswords[1],
         role: "kasir",
@@ -38,10 +37,34 @@ module.exports = {
         updatedAt: new Date(),
       },
       {
-        name: "Jane Smith",
+        name: "Hakim",
         username: "user2",
-        password: hashedPasswords[2],
+        password: hashedPasswords[1],
         role: "gudang",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        name: "Yuda",
+        username: "user3",
+        password: hashedPasswords[1],
+        role: "kasir",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        name: "Oca",
+        username: "user4",
+        password: hashedPasswords[1],
+        role: "gudang",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        name: "Putri",
+        username: "user5",
+        password: hashedPasswords[1],
+        role: "kasir",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
