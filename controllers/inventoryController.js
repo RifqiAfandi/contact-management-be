@@ -11,6 +11,10 @@ async function getAllInventory(req, res) {
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { itemName, entryDate, expiredDate } = req.query;
 
+    // Validate sortField to prevent SQL injection
+    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice"];
+    const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
+
     // Build where clause
     const { Op } = require("sequelize");
     const where = {};
@@ -42,12 +46,22 @@ async function getAllInventory(req, res) {
       }
     }
 
+    // Build order clause - for string fields, use COLLATE for better sorting
+    let orderClause;
+    if (validSortField === "itemName") {
+      // Use COLLATE for case-insensitive alphabetical sorting
+      const { literal } = require("sequelize");
+      orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
+    } else {
+      orderClause = [[validSortField, sortOrder]];
+    }
+
     // Query with filters, sorting, and pagination
     const { count, rows: inventoryItems } = await Inventory.findAndCountAll({
       where,
       limit,
       offset,
-      order: [[sortField, sortOrder]],
+      order: orderClause,
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -349,6 +363,10 @@ async function getAllInventoryNoPagination(req, res) {
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { itemName, entryDate, expiredDate } = req.query;
 
+    // Validate sortField to prevent SQL injection
+    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice"];
+    const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
+
     // Build where clause
     const { Op } = require("sequelize");
     const where = {};
@@ -380,10 +398,20 @@ async function getAllInventoryNoPagination(req, res) {
       }
     }
 
+    // Build order clause - for string fields, use COLLATE for better sorting
+    let orderClause;
+    if (validSortField === "itemName") {
+      // Use COLLATE for case-insensitive alphabetical sorting
+      const { literal } = require("sequelize");
+      orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
+    } else {
+      orderClause = [[validSortField, sortOrder]];
+    }
+
     // Query without pagination - get all inventory items
     const inventoryItems = await Inventory.findAll({
       where,
-      order: [[sortField, sortOrder]],
+      order: orderClause,
     });
 
     if (inventoryItems.length === 0) {
@@ -411,6 +439,139 @@ async function getAllInventoryNoPagination(req, res) {
   }
 }
 
+// Function to check if data exists for a specific month
+async function checkMonthlyData(req, res) {
+  try {
+    const { month } = req.query; // Format: YYYY-MM
+    
+    if (!month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Month parameter is required (format: YYYY-MM)",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    // Parse month and create date range
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(year, monthNum - 1, 1); // First day of month
+    const endDate = new Date(year, monthNum, 0); // Last day of month
+    
+    const { Op } = require("sequelize");
+
+    // Check if inventory data exists for the month
+    const inventoryCount = await Inventory.count({
+      where: {
+        entryDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const hasData = inventoryCount > 0;
+
+    res.status(200).json({
+      status: "success",
+      message: "Data check completed",
+      isSuccess: true,
+      data: {
+        month,
+        hasData,
+        inventoryCount,
+        period: {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        }
+      },
+    });
+  } catch (error) {
+    console.error("Error checking monthly data:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
+// Function to get inventory items by month
+async function getInventoryByMonth(req, res) {
+  try {
+    const { month } = req.query; // Format: YYYY-MM
+    const sortField = req.query.sortField || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
+    const { itemName } = req.query;
+
+    if (!month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Month parameter is required (format: YYYY-MM)",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    // Parse month and create date range
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(year, monthNum - 1, 1); // First day of month
+    const endDate = new Date(year, monthNum, 0); // Last day of month
+
+    // Validate sortField to prevent SQL injection
+    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice"];
+    const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
+
+    // Build where clause
+    const { Op } = require("sequelize");
+    const where = {
+      entryDate: {
+        [Op.between]: [startDate, endDate]
+      }
+    };
+
+    if (itemName) {
+      where.itemName = { [Op.like]: `%${itemName}%` };
+    }
+
+    // Build order clause
+    let orderClause;
+    if (validSortField === "itemName") {
+      const { literal } = require("sequelize");
+      orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
+    } else {
+      orderClause = [[validSortField, sortOrder]];
+    }
+
+    // Query inventory items for the specified month
+    const inventoryItems = await Inventory.findAll({
+      where,
+      order: orderClause,
+    });
+
+    res.status(200).json({
+      status: "Success",
+      message: `Inventory items for ${month} retrieved successfully`,
+      isSuccess: true,
+      data: inventoryItems,
+      totalItems: inventoryItems.length,
+      period: {
+        month,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      }
+    });
+  } catch (error) {
+    console.error("Error getting inventory by month:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
 module.exports = {
   getAllInventory,
   getAllInventoryNoPagination,
@@ -418,4 +579,6 @@ module.exports = {
   updateInventory,
   deleteInventory,
   getMonthlyExpenses,
+  checkMonthlyData,
+  getInventoryByMonth,
 };

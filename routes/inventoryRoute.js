@@ -7,6 +7,8 @@ const { authenticateToken, isAdmin } = require("../middlewares/authMiddleware");
 router.get("/", authenticateToken, inventoryController.getAllInventory);
 router.get("/all", authenticateToken, inventoryController.getAllInventoryNoPagination);
 router.get("/expenses", authenticateToken, isAdmin, inventoryController.getMonthlyExpenses);
+router.get("/check-month", authenticateToken, inventoryController.checkMonthlyData);
+router.get("/by-month", authenticateToken, inventoryController.getInventoryByMonth);
 router.post(
   "/",
   authenticateToken,
