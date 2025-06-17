@@ -66,6 +66,55 @@ async function getAllProducts(req, res) {
   }
 }
 
+// New function to get all products without pagination for cashier
+async function getAllProductsNoPagination(req, res) {
+  try {
+    const sortField = req.query.sortField || "id";
+    const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
+    const { productName, category, minPrice, maxPrice } = req.query;
+
+    // Build where clause
+    const { Op } = require("sequelize");
+    const where = {};
+    if (productName) {
+      where.productName = { [Op.like]: `%${productName}%` };
+    }
+    if (category) {
+      where.category = category;
+    }
+    if (minPrice || maxPrice) {
+      where.sellingPrice = {};
+      if (minPrice) where.sellingPrice[Op.gte] = parseFloat(minPrice);
+      if (maxPrice) where.sellingPrice[Op.lte] = parseFloat(maxPrice);
+    }
+
+    // Query without pagination - get all products
+    const products = await Products.findAll({
+      where,
+      order: [[sortField, sortOrder]],
+    });
+
+    if (products.length === 0) {
+      return res.status(404).json({
+        status: "Failed",
+        message: "No products found",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    res.status(200).json({
+      status: "Success",
+      message: "All products retrieved successfully",
+      isSuccess: true,
+      data: products,
+      totalItems: products.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function createProduct(req, res) {
   try {
     if (req.file) {
@@ -211,6 +260,7 @@ async function deleteProduct(req, res) {
 
 module.exports = {
   getAllProducts,
+  getAllProductsNoPagination,
   createProduct,
   updateProduct,
   deleteProduct,

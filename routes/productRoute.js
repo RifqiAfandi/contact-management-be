@@ -5,6 +5,7 @@ const productController = require("../controllers/productController");
 const { authenticateToken } = require("../middlewares/authMiddleware");
 
 router.get("/", authenticateToken, productController.getAllProducts);
+router.get("/all", authenticateToken, productController.getAllProductsNoPagination);
 router.post(
   "/",
   authenticateToken,
