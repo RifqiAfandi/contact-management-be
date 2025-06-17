@@ -2,6 +2,17 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {  async up(queryInterface, Sequelize) {
+    // Check if data already exists to prevent duplicates
+    const existingProducts = await queryInterface.sequelize.query(
+      'SELECT COUNT(*) as count FROM "Products"',
+      { type: queryInterface.sequelize.QueryTypes.SELECT }
+    );
+
+    if (existingProducts[0].count > 0) {
+      console.log('Products data already exists, skipping seed...');
+      return;
+    }
+
     return queryInterface.bulkInsert("Products", [
       {
         productName: "Affogato",
