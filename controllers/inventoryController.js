@@ -1,6 +1,30 @@
 const { Inventory } = require("../models");
 const imagekit = require("../lib/imagekit");
 
+// Helper function to calculate inventory status
+function calculateInventoryStatus(expiredDate, useDate) {
+  if (useDate) {
+    return 'Terpakai';
+  }
+  
+  if (!expiredDate) {
+    return 'Baik';
+  }
+  
+  const now = new Date();
+  const expiry = new Date(expiredDate);
+  const diffTime = expiry - now;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return 'Expired';
+  } else if (diffDays <= 7) {
+    return 'Segera Expired';
+  } else {
+    return 'Baik';
+  }
+}
+
 async function getAllInventory(req, res) {
   try {
     // Query params
@@ -9,10 +33,10 @@ async function getAllInventory(req, res) {
     const offset = (page - 1) * limit;
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
-    const { itemName, entryDate, expiredDate } = req.query;
+    const { itemName, entryDate, expiredDate, supplierName, status } = req.query;
 
     // Validate sortField to prevent SQL injection
-    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice"];
+    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice", "supplierName", "useDate", "status"];
     const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
 
     // Build where clause
@@ -20,6 +44,12 @@ async function getAllInventory(req, res) {
     const where = {};
     if (itemName) {
       where.itemName = { [Op.like]: `%${itemName}%` };
+    }
+    if (supplierName) {
+      where.supplierName = { [Op.like]: `%${supplierName}%` };
+    }
+    if (status) {
+      where.status = status;
     }
     if (entryDate) {
       // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
@@ -48,7 +78,7 @@ async function getAllInventory(req, res) {
 
     // Build order clause - for string fields, use COLLATE for better sorting
     let orderClause;
-    if (validSortField === "itemName") {
+    if (validSortField === "itemName" || validSortField === "supplierName") {
       // Use COLLATE for case-insensitive alphabetical sorting
       const { literal } = require("sequelize");
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
@@ -63,6 +93,15 @@ async function getAllInventory(req, res) {
       offset,
       order: orderClause,
     });
+
+    // Update status for each item and save to database
+    const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
+      const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
+      if (item.status !== calculatedStatus) {
+        await item.update({ status: calculatedStatus });
+      }
+      return { ...item.toJSON(), status: calculatedStatus };
+    }));
 
     const totalPages = Math.ceil(count / limit);
 
@@ -85,7 +124,7 @@ async function getAllInventory(req, res) {
       status: "Success",
       message: "Inventory items retrieved successfully",
       isSuccess: true,
-      data: inventoryItems,
+      data: updatedItems,
       pagination: {
         currentPage: page,
         totalPages: totalPages,
@@ -105,9 +144,7 @@ async function getAllInventory(req, res) {
 async function createInventory(req, res) {
   try {
     console.log("📝 Request body:", req.body);
-    console.log("📁 Request file:", req.file);
-
-    const { itemName, purchasePrice, expiredDate, entryDate, userId } =
+    console.log("📁 Request file:", req.file);    const { itemName, purchasePrice, expiredDate, entryDate, userId, supplierName, useDate } =
       req.body;
 
     if (!itemName || !purchasePrice || !entryDate || !userId) {
@@ -153,7 +190,7 @@ async function createInventory(req, res) {
           data: null,
         });
       }
-    }
+    }    const calculatedStatus = calculateInventoryStatus(expiredDate, useDate);
 
     const newInventoryItem = await Inventory.create({
       itemName,
@@ -161,6 +198,9 @@ async function createInventory(req, res) {
       expiredDate: expiredDate || null,
       entryDate,
       userId: parseInt(userId),
+      supplierName: supplierName || null,
+      useDate: useDate || null,
+      status: calculatedStatus,
       imageUrl,
     });
 
@@ -186,10 +226,8 @@ async function createInventory(req, res) {
 async function updateInventory(req, res) {
   try {
     console.log("📝 Update request body:", req.body);
-    console.log("📁 Update request file:", req.file);
-
-    const { id } = req.params;
-    const { itemName, purchasePrice, expiredDate, entryDate } = req.body;
+    console.log("📁 Update request file:", req.file);    const { id } = req.params;
+    const { itemName, purchasePrice, expiredDate, entryDate, supplierName, useDate } = req.body;
 
     const inventoryItem = await Inventory.findByPk(id);
     if (!inventoryItem) {
@@ -206,9 +244,14 @@ async function updateInventory(req, res) {
       purchasePrice: purchasePrice
         ? parseInt(purchasePrice)
         : inventoryItem.purchasePrice,
-      expiredDate: expiredDate || inventoryItem.expiredDate,
+      expiredDate: expiredDate !== undefined ? expiredDate : inventoryItem.expiredDate,
       entryDate: entryDate || inventoryItem.entryDate,
+      supplierName: supplierName !== undefined ? supplierName : inventoryItem.supplierName,
+      useDate: useDate !== undefined ? useDate : inventoryItem.useDate,
     };
+
+    // Calculate status based on the updated data
+    updateData.status = calculateInventoryStatus(updateData.expiredDate, updateData.useDate);
 
     if (req.file) {
       const file = req.file;
@@ -361,10 +404,10 @@ async function getAllInventoryNoPagination(req, res) {
   try {
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
-    const { itemName, entryDate, expiredDate } = req.query;
+    const { itemName, entryDate, expiredDate, supplierName, status } = req.query;
 
     // Validate sortField to prevent SQL injection
-    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice"];
+    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice", "supplierName", "useDate", "status"];
     const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
 
     // Build where clause
@@ -372,6 +415,12 @@ async function getAllInventoryNoPagination(req, res) {
     const where = {};
     if (itemName) {
       where.itemName = { [Op.like]: `%${itemName}%` };
+    }
+    if (supplierName) {
+      where.supplierName = { [Op.like]: `%${supplierName}%` };
+    }
+    if (status) {
+      where.status = status;
     }
     if (entryDate) {
       // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
@@ -400,7 +449,7 @@ async function getAllInventoryNoPagination(req, res) {
 
     // Build order clause - for string fields, use COLLATE for better sorting
     let orderClause;
-    if (validSortField === "itemName") {
+    if (validSortField === "itemName" || validSortField === "supplierName") {
       // Use COLLATE for case-insensitive alphabetical sorting
       const { literal } = require("sequelize");
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
@@ -413,6 +462,15 @@ async function getAllInventoryNoPagination(req, res) {
       where,
       order: orderClause,
     });
+
+    // Update status for each item and save to database
+    const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
+      const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
+      if (item.status !== calculatedStatus) {
+        await item.update({ status: calculatedStatus });
+      }
+      return { ...item.toJSON(), status: calculatedStatus };
+    }));
 
     if (inventoryItems.length === 0) {
       return res.status(404).json({
@@ -427,7 +485,7 @@ async function getAllInventoryNoPagination(req, res) {
       status: "Success",
       message: "All inventory items retrieved successfully",
       isSuccess: true,
-      data: inventoryItems,
+      data: updatedItems,
       totalItems: inventoryItems.length,
     });
   } catch (error) {

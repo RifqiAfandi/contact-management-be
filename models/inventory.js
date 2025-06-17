@@ -44,11 +44,23 @@ module.exports = (sequelize, DataTypes) => {
       expiredDate: {
         type: DataTypes.DATE,
         allowNull: true,
-      },
-      entryDate: {
+      },      entryDate: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW,
+      },
+      supplierName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      useDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      status: {
+        type: DataTypes.ENUM('Baik', 'Segera Expired', 'Expired', 'Terpakai'),
+        allowNull: false,
+        defaultValue: 'Baik',
       },
       userId: {
         type: DataTypes.INTEGER,

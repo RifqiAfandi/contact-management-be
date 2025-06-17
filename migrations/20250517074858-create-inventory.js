@@ -20,9 +20,29 @@ module.exports = {
       },
       expiredDate: {
         type: Sequelize.DATE,
-      },
-      entryDate: {
+      },      entryDate: {
         type: Sequelize.DATE,
+      },
+      supplierName: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      useDate: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      status: {
+        type: Sequelize.ENUM('Baik', 'Segera Expired', 'Expired', 'Terpakai'),
+        allowNull: false,
+        defaultValue: 'Baik',
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
       },
       createdAt: {
         allowNull: false,

@@ -13,13 +13,71 @@ module.exports = {  async up(queryInterface, Sequelize) {
       return;
     }
 
-    return queryInterface.bulkInsert("Inventories", [
+    // Helper function to calculate status based on expiry date
+    const calculateStatus = (expiredDate, isUsed = false) => {
+      if (isUsed) return 'Terpakai';
+      
+      const currentDate = new Date('2025-06-17');
+      const expiry = new Date(expiredDate);
+      const diffTime = expiry - currentDate;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return 'Expired';
+      if (diffDays <= 7) return 'Segera Expired';
+      return 'Baik';
+    };    // Generate inventory items with 3 variations each
+    const inventoryItems = [];
+    const supplierNames = ['PT Sumber Makmur', 'CV Berkah Jaya', 'UD Mitra Sukses', 'PT Cahaya Abadi', ''];
+    
+    // Base inventory data
+    const baseItems = [
       {
         itemName: "Ayam Bebek",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/ayam%20bebek.jpg?updatedAt=1750113829017",
         purchasePrice: 75000,
         expiredDate: new Date("2025-06-19"), // 2 hari (daging segar)
         entryDate: new Date("2025-06-17"),
+        supplierName: "PT Sumber Makmur",
+        useDate: null,
+        status: calculateStatus(new Date("2025-06-19"), false),
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Ayam Bebek",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/ayam%20bebek.jpg?updatedAt=1750113829017",
+        purchasePrice: 75000,
+        expiredDate: new Date("2025-06-16"), // Already expired
+        entryDate: new Date("2025-06-17"),
+        supplierName: "CV Berkah Jaya",
+        useDate: null,
+        status: calculateStatus(new Date("2025-06-16"), false),
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Ayam Bebek",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/ayam%20bebek.jpg?updatedAt=1750113829017",
+        purchasePrice: 75000,
+        expiredDate: new Date("2025-06-25"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "UD Mitra Sukses",
+        useDate: new Date("2025-06-16"),
+        status: "Terpakai",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },      {
+        itemName: "Bawang Merah",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bawang%20merah.jpg?updatedAt=1750113829348",
+        purchasePrice: 20000,
+        expiredDate: new Date("2025-08-17"), // 2 bulan
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Cahaya Abadi",
+        useDate: null,
+        status: calculateStatus(new Date("2025-08-17"), false),
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -28,8 +86,36 @@ module.exports = {  async up(queryInterface, Sequelize) {
         itemName: "Bawang Merah",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bawang%20merah.jpg?updatedAt=1750113829348",
         purchasePrice: 20000,
-        expiredDate: new Date("2025-08-17"), // 2 bulan
+        expiredDate: new Date("2025-06-24"), // Near expiry
         entryDate: new Date("2025-06-17"),
+        supplierName: "",
+        useDate: null,
+        status: calculateStatus(new Date("2025-06-24"), false),
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Bawang Merah",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bawang%20merah.jpg?updatedAt=1750113829348",
+        purchasePrice: 20000,
+        expiredDate: new Date("2025-08-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Sumber Makmur",
+        useDate: new Date("2025-06-16"),
+        status: "Terpakai",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },      {
+        itemName: "Bawang Putih",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bawang%20putih.jpg?updatedAt=1750113829037",
+        purchasePrice: 15000,
+        expiredDate: new Date("2025-09-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "CV Berkah Jaya",
+        useDate: null,
+        status: "Baik",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -38,8 +124,36 @@ module.exports = {  async up(queryInterface, Sequelize) {
         itemName: "Bawang Putih",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bawang%20putih.jpg?updatedAt=1750113829037",
         purchasePrice: 15000,
-        expiredDate: new Date("2025-09-17"), // 3 bulan
+        expiredDate: new Date("2025-06-15"),
         entryDate: new Date("2025-06-17"),
+        supplierName: "UD Mitra Sukses",
+        useDate: null,
+        status: "Expired",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Bawang Putih",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bawang%20putih.jpg?updatedAt=1750113829037",
+        purchasePrice: 15000,
+        expiredDate: new Date("2025-09-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Cahaya Abadi",
+        useDate: new Date("2025-06-15"),
+        status: "Terpakai",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },      {
+        itemName: "Bubuk Rasa Coklat",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20coklat%20%20.jpg?updatedAt=1750113829119",
+        purchasePrice: 40000,
+        expiredDate: new Date("2026-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Sumber Makmur",
+        useDate: null,
+        status: "Baik",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -48,8 +162,37 @@ module.exports = {  async up(queryInterface, Sequelize) {
         itemName: "Bubuk Rasa Coklat",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20coklat%20%20.jpg?updatedAt=1750113829119",
         purchasePrice: 40000,
-        expiredDate: new Date("2026-06-17"), // 1 tahun
+        expiredDate: new Date("2025-06-20"),
         entryDate: new Date("2025-06-17"),
+        supplierName: "",
+        useDate: null,
+        status: "Segera Expired",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Bubuk Rasa Coklat",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20coklat%20%20.jpg?updatedAt=1750113829119",
+        purchasePrice: 40000,
+        expiredDate: new Date("2026-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "CV Berkah Jaya",
+        useDate: new Date("2025-06-16"),
+        status: "Terpakai",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },      // Bubuk Rasa Matcha - 3 variations
+      {
+        itemName: "Bubuk Rasa Matcha",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20matcha.jpg?updatedAt=1750113829375",
+        purchasePrice: 50000,
+        expiredDate: new Date("2026-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "UD Mitra Sukses",
+        useDate: null,
+        status: "Baik",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -58,8 +201,38 @@ module.exports = {  async up(queryInterface, Sequelize) {
         itemName: "Bubuk Rasa Matcha",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20matcha.jpg?updatedAt=1750113829375",
         purchasePrice: 50000,
-        expiredDate: new Date("2026-06-17"), // 1 tahun
+        expiredDate: new Date("2025-06-14"),
         entryDate: new Date("2025-06-17"),
+        supplierName: "PT Cahaya Abadi",
+        useDate: null,
+        status: "Expired",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Bubuk Rasa Matcha",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20matcha.jpg?updatedAt=1750113829375",
+        purchasePrice: 50000,
+        expiredDate: new Date("2026-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Sumber Makmur",
+        useDate: new Date("2025-06-15"),
+        status: "Terpakai",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      // Bubuk Rasa Red Velvet - 3 variations
+      {
+        itemName: "Bubuk Rasa Red Velvet",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20red%20velvet..jpg?updatedAt=1750113829373",
+        purchasePrice: 45000,
+        expiredDate: new Date("2026-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "CV Berkah Jaya",
+        useDate: null,
+        status: "Baik",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -68,8 +241,24 @@ module.exports = {  async up(queryInterface, Sequelize) {
         itemName: "Bubuk Rasa Red Velvet",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20red%20velvet..jpg?updatedAt=1750113829373",
         purchasePrice: 45000,
-        expiredDate: new Date("2026-06-17"), // 1 tahun
+        expiredDate: new Date("2025-06-22"),
         entryDate: new Date("2025-06-17"),
+        supplierName: "UD Mitra Sukses",
+        useDate: null,
+        status: "Segera Expired",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        itemName: "Bubuk Rasa Red Velvet",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/bubuk%20rasa%20red%20velvet..jpg?updatedAt=1750113829373",
+        purchasePrice: 45000,
+        expiredDate: new Date("2026-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Cahaya Abadi",
+        useDate: new Date("2025-06-16"),
+        status: "Terpakai",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -393,18 +582,46 @@ module.exports = {  async up(queryInterface, Sequelize) {
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
+      },      // Thai Tea - 3 variations
+      {
+        itemName: "Thai Tea",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/thai%20tea.jpg?updatedAt=1750113842385",
+        purchasePrice: 35000,
+        expiredDate: new Date("2027-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "CV Berkah Jaya",
+        useDate: null,
+        status: "Baik",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         itemName: "Thai Tea",
         imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/thai%20tea.jpg?updatedAt=1750113842385",
         purchasePrice: 35000,
-        expiredDate: new Date("2027-06-17"), // 2 tahun
+        expiredDate: new Date("2025-06-23"),
         entryDate: new Date("2025-06-17"),
+        supplierName: "UD Mitra Sukses",
+        useDate: null,
+        status: "Segera Expired",
         userId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ]);
+      {
+        itemName: "Thai Tea",
+        imageUrl: "https://ik.imagekit.io/RifqiAfandi/Inventory/thai%20tea.jpg?updatedAt=1750113842385",
+        purchasePrice: 35000,
+        expiredDate: new Date("2027-06-17"),
+        entryDate: new Date("2025-06-17"),
+        supplierName: "PT Cahaya Abadi",
+        useDate: new Date("2025-06-16"),
+        status: "Terpakai",
+        userId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },    ];
   },
 
   async down(queryInterface, Sequelize) {
