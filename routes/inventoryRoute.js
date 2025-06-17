@@ -5,6 +5,7 @@ const { uploader } = require("../middlewares/uploader");
 const { authenticateToken, isAdmin } = require("../middlewares/authMiddleware");
 
 router.get("/", authenticateToken, inventoryController.getAllInventory);
+router.get("/all", authenticateToken, inventoryController.getAllInventoryNoPagination);
 router.get("/expenses", authenticateToken, isAdmin, inventoryController.getMonthlyExpenses);
 router.post(
   "/",

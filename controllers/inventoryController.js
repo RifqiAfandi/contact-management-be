@@ -342,8 +342,78 @@ async function getMonthlyExpenses(req, res) {
   }
 }
 
+// New function to get all inventory items without pagination for warehouse
+async function getAllInventoryNoPagination(req, res) {
+  try {
+    const sortField = req.query.sortField || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
+    const { itemName, entryDate, expiredDate } = req.query;
+
+    // Build where clause
+    const { Op } = require("sequelize");
+    const where = {};
+    if (itemName) {
+      where.itemName = { [Op.like]: `%${itemName}%` };
+    }
+    if (entryDate) {
+      // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
+      if (req.query.entryDate_gte || req.query.entryDate_lte) {
+        where.entryDate = {};
+        if (req.query.entryDate_gte)
+          where.entryDate[Op.gte] = req.query.entryDate_gte;
+        if (req.query.entryDate_lte)
+          where.entryDate[Op.lte] = req.query.entryDate_lte;
+      } else {
+        where.entryDate = entryDate;
+      }
+    }
+    if (expiredDate) {
+      // expiredDate can be a single date, or range: expiredDate_gte, expiredDate_lte
+      if (req.query.expiredDate_gte || req.query.expiredDate_lte) {
+        where.expiredDate = {};
+        if (req.query.expiredDate_gte)
+          where.expiredDate[Op.gte] = req.query.expiredDate_gte;
+        if (req.query.expiredDate_lte)
+          where.expiredDate[Op.lte] = req.query.expiredDate_lte;
+      } else {
+        where.expiredDate = expiredDate;
+      }
+    }
+
+    // Query without pagination - get all inventory items
+    const inventoryItems = await Inventory.findAll({
+      where,
+      order: [[sortField, sortOrder]],
+    });
+
+    if (inventoryItems.length === 0) {
+      return res.status(404).json({
+        status: "Failed",
+        message: "No inventory items found",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    res.status(200).json({
+      status: "Success",
+      message: "All inventory items retrieved successfully",
+      isSuccess: true,
+      data: inventoryItems,
+      totalItems: inventoryItems.length,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
 module.exports = {
   getAllInventory,
+  getAllInventoryNoPagination,
   createInventory,
   updateInventory,
   deleteInventory,
