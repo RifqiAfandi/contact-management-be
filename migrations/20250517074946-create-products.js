@@ -17,9 +17,18 @@ module.exports = {
       },
       sellingPrice: {
         type: Sequelize.INTEGER,
-      },
-      category: {
+      },      category: {
         type: Sequelize.STRING,
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       createdAt: {
         allowNull: false,

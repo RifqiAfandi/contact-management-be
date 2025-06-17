@@ -23,9 +23,18 @@ module.exports = {
       },
       name: {
         type: Sequelize.STRING,
-      },
-      description: {
+      },      description: {
         type: Sequelize.TEXT,
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
       },
       createdAt: {
         allowNull: false,
