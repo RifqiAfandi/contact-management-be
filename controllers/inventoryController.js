@@ -630,6 +630,74 @@ async function getInventoryByMonth(req, res) {
   }
 }
 
+// Function to get low stock notification - items with count < 3
+async function getLowStockNotification(req, res) {
+  try {
+    const { Op, fn, col } = require("sequelize");
+
+    // Get all inventory items grouped by itemName
+    const inventoryItemCounts = await Inventory.findAll({
+      attributes: [
+        'itemName',
+        [fn('COUNT', col('itemName')), 'itemCount'],
+        [fn('MIN', col('id')), 'sampleId'] // Get a sample record for additional info
+      ],
+      where: {
+        useDate: null // Only count available items (not used)
+      },
+      group: ['itemName'],
+      having: {
+        [fn('COUNT', col('itemName'))]: {
+          [Op.lt]: 3 // Items with count less than 3
+        }
+      },
+      raw: true
+    });
+
+    if (inventoryItemCounts.length === 0) {
+      return res.status(200).json({
+        status: "Success",
+        message: "No low stock items found",
+        isSuccess: true,
+        data: [],
+      });
+    }
+
+    // Get detailed information for each low stock item
+    const lowStockItems = await Promise.all(
+      inventoryItemCounts.map(async (item) => {
+        const sampleItem = await Inventory.findByPk(item.sampleId);
+        return {
+          id: sampleItem.id,
+          itemName: item.itemName,
+          itemCount: parseInt(item.itemCount),
+          imageUrl: sampleItem.imageUrl,
+          purchasePrice: sampleItem.purchasePrice,
+          entryDate: sampleItem.entryDate,
+          supplierName: sampleItem.supplierName,
+          status: 'Hampir Habis'
+        };
+      })
+    );
+
+    res.status(200).json({
+      status: "Success",
+      message: "Low stock items retrieved successfully",
+      isSuccess: true,
+      data: lowStockItems,
+      totalItems: lowStockItems.length,
+    });
+  } catch (error) {
+    console.error("Error getting low stock notification:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
 module.exports = {
   getAllInventory,
   getAllInventoryNoPagination,
@@ -639,4 +707,5 @@ module.exports = {
   getMonthlyExpenses,
   checkMonthlyData,
   getInventoryByMonth,
+  getLowStockNotification,
 };
