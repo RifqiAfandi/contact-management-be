@@ -406,6 +406,14 @@ async function getAllInventoryNoPagination(req, res) {
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { itemName, entryDate, expiredDate, supplierName, status } = req.query;
 
+    console.log("🔍 getAllInventoryNoPagination - Query params:", {
+      itemName,
+      status,
+      supplierName,
+      sortField,
+      sortOrder
+    });
+
     // Validate sortField to prevent SQL injection
     const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice", "supplierName", "useDate", "status"];
     const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
@@ -421,6 +429,7 @@ async function getAllInventoryNoPagination(req, res) {
     }
     if (status) {
       where.status = status;
+      console.log(`📊 Filtering by status: "${status}"`);
     }
     if (entryDate) {
       // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
@@ -461,32 +470,31 @@ async function getAllInventoryNoPagination(req, res) {
     const inventoryItems = await Inventory.findAll({
       where,
       order: orderClause,
-    });
-
-    // Update status for each item and save to database
+    });    // Update status for each item and save to database
     const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
       const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
       if (item.status !== calculatedStatus) {
         await item.update({ status: calculatedStatus });
       }
       return { ...item.toJSON(), status: calculatedStatus };
-    }));
-
-    if (inventoryItems.length === 0) {
-      return res.status(404).json({
-        status: "Failed",
-        message: "No inventory items found",
-        isSuccess: false,
-        data: null,
-      });
+    }));    console.log(`📦 All inventory items retrieved: ${updatedItems.length}`);
+    
+    if (status) {
+      console.log(`🔍 Status filter "${status}" applied - Found ${updatedItems.length} items`);
+      console.log("📋 Status breakdown:", updatedItems.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+      }, {}));
     }
 
     res.status(200).json({
       status: "Success",
-      message: "All inventory items retrieved successfully",
+      message: updatedItems.length > 0 
+        ? "All inventory items retrieved successfully" 
+        : "No inventory items found",
       isSuccess: true,
       data: updatedItems,
-      totalItems: inventoryItems.length,
+      totalItems: updatedItems.length,
     });
   } catch (error) {
     res.status(500).json({
@@ -560,7 +568,15 @@ async function getInventoryByMonth(req, res) {
     const { month } = req.query; // Format: YYYY-MM
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
-    const { itemName } = req.query;
+    const { itemName, status } = req.query;
+
+    console.log("🔍 getInventoryByMonth - Query params:", {
+      month,
+      itemName,
+      status,
+      sortField,
+      sortOrder
+    });
 
     if (!month) {
       return res.status(400).json({
@@ -592,6 +608,11 @@ async function getInventoryByMonth(req, res) {
       where.itemName = { [Op.like]: `%${itemName}%` };
     }
 
+    if (status) {
+      where.status = status;
+      console.log(`📊 Filtering monthly data by status: "${status}"`);
+    }
+
     // Build order clause
     let orderClause;
     if (validSortField === "itemName") {
@@ -599,20 +620,35 @@ async function getInventoryByMonth(req, res) {
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
     } else {
       orderClause = [[validSortField, sortOrder]];
-    }
-
-    // Query inventory items for the specified month
+    }    // Query inventory items for the specified month
     const inventoryItems = await Inventory.findAll({
       where,
       order: orderClause,
     });
 
+    // Update status for each item and save to database
+    const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
+      const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
+      if (item.status !== calculatedStatus) {
+        await item.update({ status: calculatedStatus });
+      }
+      return { ...item.toJSON(), status: calculatedStatus };
+    }));    console.log(`📦 Monthly inventory items retrieved: ${updatedItems.length} for ${month}`);
+    
+    if (status) {
+      console.log(`🔍 Monthly status filter "${status}" applied - Found ${updatedItems.length} items`);
+      console.log("📋 Monthly status breakdown:", updatedItems.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+      }, {}));
+    }
+
     res.status(200).json({
       status: "Success",
       message: `Inventory items for ${month} retrieved successfully`,
       isSuccess: true,
-      data: inventoryItems,
-      totalItems: inventoryItems.length,
+      data: updatedItems,
+      totalItems: updatedItems.length,
       period: {
         month,
         startDate: startDate.toISOString().split('T')[0],
