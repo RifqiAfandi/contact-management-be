@@ -666,13 +666,15 @@ async function getInventoryByMonth(req, res) {
   }
 }
 
-// Function to get low stock notification - items with count < 3
+// Function to get low stock notification - items with count < 3 or all items if no duplicates
 async function getLowStockNotification(req, res) {
   try {
     const { Op, fn, col } = require("sequelize");
 
-    // Get all inventory items grouped by itemName
-    const inventoryItemCounts = await Inventory.findAll({
+    console.log('🔍 Analyzing inventory for low stock notification...');
+
+    // First, get ALL inventory items grouped by itemName (including counts)
+    const allInventoryItemCounts = await Inventory.findAll({
       attributes: [
         'itemName',
         [fn('COUNT', col('itemName')), 'itemCount'],
@@ -682,27 +684,42 @@ async function getLowStockNotification(req, res) {
         useDate: null // Only count available items (not used)
       },
       group: ['itemName'],
-      having: {
-        [fn('COUNT', col('itemName'))]: {
-          [Op.lt]: 3 // Items with count less than 3
-        }
-      },
       raw: true
     });
 
-    if (inventoryItemCounts.length === 0) {
+    console.log(`📊 Found ${allInventoryItemCounts.length} unique item types in inventory`);
+
+    // Check if there are any duplicates (items with count > 1)
+    const hasDuplicates = allInventoryItemCounts.some(item => parseInt(item.itemCount) > 1);
+    
+    let lowStockItemCounts;
+    
+    if (!hasDuplicates) {
+      // If no duplicates exist, ALL items should appear in low stock notification
+      console.log('🚨 No duplicates found - ALL items will appear in low stock notification');
+      lowStockItemCounts = allInventoryItemCounts;
+    } else {
+      // If duplicates exist, use original logic (count < 3)
+      console.log('✅ Duplicates found - using standard logic (count < 3)');
+      lowStockItemCounts = allInventoryItemCounts.filter(item => parseInt(item.itemCount) < 3);
+    }
+
+    console.log(`📦 Low stock items to show: ${lowStockItemCounts.length}`);
+
+    if (lowStockItemCounts.length === 0) {
+      console.log('✅ No low stock items found');
       return res.status(200).json({
         status: "Success",
         message: "No low stock items found",
         isSuccess: true,
         data: [],
+        logic: hasDuplicates ? "standard" : "no_duplicates"
       });
-    }
-
-    // Get detailed information for each low stock item
+    }    // Get detailed information for each low stock item
     const lowStockItems = await Promise.all(
-      inventoryItemCounts.map(async (item) => {
+      lowStockItemCounts.map(async (item) => {
         const sampleItem = await Inventory.findByPk(item.sampleId);
+        console.log(`📦 Including in notification: "${item.itemName}" - Count: ${item.itemCount}`);
         return {
           id: sampleItem.id,
           itemName: item.itemName,
@@ -711,17 +728,24 @@ async function getLowStockNotification(req, res) {
           purchasePrice: sampleItem.purchasePrice,
           entryDate: sampleItem.entryDate,
           supplierName: sampleItem.supplierName,
-          status: 'Hampir Habis'
+          status: 'Hampir Habis',
+          logic: hasDuplicates ? "standard" : "no_duplicates"
         };
       })
     );
 
     res.status(200).json({
       status: "Success",
-      message: "Low stock items retrieved successfully",
+      message: hasDuplicates 
+        ? "Low stock items retrieved successfully (standard logic)" 
+        : "All items retrieved - no duplicates found (all items shown)",
       isSuccess: true,
       data: lowStockItems,
       totalItems: lowStockItems.length,
+      logic: hasDuplicates ? "standard" : "no_duplicates",
+      explanation: hasDuplicates 
+        ? "Items with count < 3 are shown" 
+        : "No duplicates found - all items are shown"
     });
   } catch (error) {
     console.error("Error getting low stock notification:", error);
@@ -730,6 +754,50 @@ async function getLowStockNotification(req, res) {
       message: error.message,
       isSuccess: false,
       data: null,
+    });
+  }
+}
+
+// Test function to demonstrate the low stock logic (for development/testing only)
+async function testLowStockLogic(req, res) {
+  try {
+    const { fn, col } = require("sequelize");
+
+    // Get all items grouped by itemName with counts
+    const allItems = await Inventory.findAll({
+      attributes: [
+        'itemName',
+        [fn('COUNT', col('itemName')), 'itemCount']
+      ],
+      where: { useDate: null },
+      group: ['itemName'],
+      raw: true
+    });
+
+    // Check for duplicates
+    const hasDuplicates = allItems.some(item => parseInt(item.itemCount) > 1);
+    
+    // Show analysis
+    const analysis = {
+      totalUniqueItems: allItems.length,
+      hasDuplicates,
+      logic: hasDuplicates ? "standard" : "no_duplicates",
+      itemBreakdown: allItems.map(item => ({
+        itemName: item.itemName,
+        count: parseInt(item.itemCount),
+        wouldShowInNotification: hasDuplicates ? parseInt(item.itemCount) < 3 : true
+      }))
+    };
+
+    res.status(200).json({
+      status: "Success",
+      message: "Low stock logic analysis",
+      data: analysis
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error", 
+      message: error.message
     });
   }
 }
@@ -744,4 +812,5 @@ module.exports = {
   checkMonthlyData,
   getInventoryByMonth,
   getLowStockNotification,
+  testLowStockLogic,
 };
