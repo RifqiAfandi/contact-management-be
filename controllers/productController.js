@@ -1,7 +1,11 @@
 const { Products } = require("../models");
+const imagekit = require("../lib/imagekit");
 
 async function getAllProducts(req, res) {
   try {
+    console.log("=== GET ALL PRODUCTS REQUEST ===");
+    console.log("Query params:", req.query);
+    
     // Query params
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -25,6 +29,9 @@ async function getAllProducts(req, res) {
       if (maxPrice) where.sellingPrice[Op.lte] = parseFloat(maxPrice);
     }
 
+    console.log("Where clause:", where);
+    console.log("Pagination:", { page, limit, offset });
+
     // Query with filters, sorting, and pagination
     const { count, rows: products } = await Products.findAndCountAll({
       where,
@@ -33,9 +40,13 @@ async function getAllProducts(req, res) {
       order: [[sortField, sortOrder]],
     });
 
+    console.log(`Found ${count} total products, returning ${products.length} products`);
+    console.log("Product IDs:", products.map(p => p.id));
+
     const totalPages = Math.ceil(count / limit);
 
     if (products.length === 0) {
+      console.log("No products found");
       return res.status(404).json({
         status: "Failed",
         message: "No products found",
@@ -49,6 +60,8 @@ async function getAllProducts(req, res) {
         },
       });
     }
+    
+    console.log("Returning products successfully");
     res.status(200).json({
       status: "Success",
       message: "Products retrieved successfully",
@@ -62,6 +75,7 @@ async function getAllProducts(req, res) {
       },
     });
   } catch (error) {
+    console.error("Get products error:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -117,11 +131,24 @@ async function getAllProductsNoPagination(req, res) {
 
 async function createProduct(req, res) {
   try {
+    const { productName, sellingPrice, category, userId } = req.body;
+
+    // Validate required fields
+    if (!productName || !sellingPrice || !category || !userId) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Product name, selling price, category, and user ID are required",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    let productUrl = null;
+
     if (req.file) {
       const file = req.file;
       const split = file.originalname.split(".");
       const ext = split[split.length - 1];
-      const { productName, sellingPrice, category, userId } = req.body;
 
       const uploadImg = await imagekit.upload({
         file: file.buffer,
@@ -135,24 +162,27 @@ async function createProduct(req, res) {
           isSuccess: false,
           data: null,
         });
-      } else if (uploadImg) {
-        const newProduct = await Products.create({
-          productName,
-          sellingPrice,
-          category,
-          userId,
-          productUrl: uploadImg.url,
-        });
-
-        res.status(201).json({
-          status: "Success",
-          message: "Product created successfully",
-          isSuccess: true,
-          data: newProduct,
-        });
       }
+
+      productUrl = uploadImg.url;
     }
+
+    const newProduct = await Products.create({
+      productName,
+      sellingPrice: parseInt(sellingPrice),
+      category,
+      userId: parseInt(userId),
+      productUrl,
+    });
+
+    res.status(201).json({
+      status: "Success",
+      message: "Product created successfully",
+      isSuccess: true,
+      data: newProduct,
+    });
   } catch (error) {
+    console.error("Create product error:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,
@@ -203,7 +233,7 @@ async function updateProduct(req, res) {
         });
       }
 
-      updateData.imageUrl = uploadImg.url;
+      updateData.productUrl = uploadImg.url;
     }
 
     await product.update(updateData);
@@ -230,8 +260,29 @@ async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
 
-    const product = await Products.findByPk(id);
+    console.log(`=== DELETE PRODUCT REQUEST ===`);
+    console.log(`Raw ID from params: "${id}"`);
+    console.log(`User:`, req.user?.id, req.user?.email);
+
+    // Validate ID format
+    if (!id || isNaN(parseInt(id))) {
+      console.log(`Invalid ID format: ${id}`);
+      return res.status(400).json({
+        status: "Failed",
+        message: "Invalid product ID",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    const productId = parseInt(id);
+    console.log(`Parsed product ID: ${productId}`);
+
+    // Check if product exists before delete
+    const product = await Products.findByPk(productId);
+    
     if (!product) {
+      console.log(`Product with ID ${productId} not found in database`);
       return res.status(404).json({
         status: "Failed",
         message: "Product not found",
@@ -240,7 +291,33 @@ async function deleteProduct(req, res) {
       });
     }
 
+    console.log(`Product found:`, {
+      id: product.id,
+      name: product.productName,
+      userId: product.userId
+    });
+
+    // Simple delete without transaction first
+    console.log(`Attempting to delete product...`);
     await product.destroy();
+    console.log(`Product destroy() method completed`);
+
+    // Verify deletion by checking if product still exists
+    const verifyDelete = await Products.findByPk(productId);
+    console.log(`Verification - Product still exists:`, verifyDelete ? 'YES' : 'NO');
+
+    if (verifyDelete) {
+      console.log(`ERROR: Product still exists after delete operation`);
+      return res.status(500).json({
+        status: "Failed",
+        message: "Failed to delete product - product still exists",
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    console.log(`Product ${productId} successfully deleted`);
+    console.log(`=== DELETE PRODUCT SUCCESS ===`);
 
     res.status(200).json({
       status: "Success",
@@ -249,6 +326,9 @@ async function deleteProduct(req, res) {
       data: null,
     });
   } catch (error) {
+    console.log(`=== DELETE PRODUCT ERROR ===`);
+    console.error("Delete product error:", error.message);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       status: "Failed",
       message: error.message,
