@@ -3,7 +3,7 @@ const { Users, Transactions, Products } = require("../models");
 async function getAllTransactions(req, res) {
   try {
     const userId = req.user?.id;
-    
+
     // Build query options
     const queryOptions = {
       include: [
@@ -39,7 +39,6 @@ async function getAllTransactions(req, res) {
       data: transactions,
     });
   } catch (error) {
-    console.error("Get transactions error:", error);
     res.status(500).json({
       status: "Failed",
       message: "Failed to fetch transactions",
@@ -51,15 +50,12 @@ async function getAllTransactions(req, res) {
 
 async function createTransaction(req, res) {
   try {
-    console.log("Creating transaction with data:", req.body);
-    console.log("User:", req.user);
-
-    const { item, total, subTotal, paymentMethod, name, description } = req.body;
+    const { item, total, subTotal, paymentMethod, name, description } =
+      req.body;
     const userId = req.user?.id;
 
     // Basic validation
     if (!item || !Array.isArray(item) || item.length === 0) {
-      console.log("Validation failed: Invalid items");
       return res.status(400).json({
         status: "Failed",
         message: "Items are required and must be an array",
@@ -67,9 +63,7 @@ async function createTransaction(req, res) {
         data: null,
       });
     }
-
     if (!total || !subTotal || !paymentMethod) {
-      console.log("Validation failed: Missing required fields");
       return res.status(400).json({
         status: "Failed",
         message: "Total, subTotal, and paymentMethod are required",
@@ -81,7 +75,6 @@ async function createTransaction(req, res) {
     // Simple validation for each item
     for (const cartItem of item) {
       if (!cartItem.productId || !cartItem.quantity || !cartItem.price) {
-        console.log("Validation failed: Invalid item structure", cartItem);
         return res.status(400).json({
           status: "Failed",
           message: "Each item must have productId, quantity, and price",
@@ -91,8 +84,6 @@ async function createTransaction(req, res) {
       }
     }
 
-    console.log("Creating transaction...");
-
     // Create transaction with simplified data
     const transactionData = {
       item: JSON.stringify(item),
@@ -100,15 +91,13 @@ async function createTransaction(req, res) {
       subTotal: parseFloat(subTotal),
       paymentMethod,
       name: name || req.user?.name || "Guest",
-      description: description || `Transaction by ${req.user?.name || "Guest"} with ${item.length} items`,
+      description:
+        description ||
+        `Transaction by ${req.user?.name || "Guest"} with ${item.length} items`,
       userId: userId || null,
     };
 
-    console.log("Transaction data:", transactionData);
-
     const transaction = await Transactions.create(transactionData);
-
-    console.log("Transaction created:", transaction);
 
     res.status(201).json({
       status: "Success",
@@ -129,8 +118,6 @@ async function createTransaction(req, res) {
       },
     });
   } catch (error) {
-    console.error("Transaction creation error details:", error);
-    console.error("Error stack:", error.stack);
     res.status(500).json({
       status: "Failed",
       message: `Failed to create transaction: ${error.message}`,
@@ -181,7 +168,6 @@ async function getTransactionById(req, res) {
       },
     });
   } catch (error) {
-    console.error("Get transaction error:", error);
     res.status(500).json({
       status: "Failed",
       message: "Failed to fetch transaction",
@@ -194,7 +180,7 @@ async function getTransactionById(req, res) {
 async function getMonthlyRevenue(req, res) {
   try {
     const { month } = req.query; // Format: YYYY-MM
-    
+
     if (!month) {
       return res.status(400).json({
         status: "error",
@@ -205,23 +191,23 @@ async function getMonthlyRevenue(req, res) {
     }
 
     // Parse month and create date range
-    const [year, monthNum] = month.split('-');
+    const [year, monthNum] = month.split("-");
     const startDate = new Date(year, monthNum - 1, 1); // First day of month
     const endDate = new Date(year, monthNum, 0); // Last day of month
-    
+
     const { Op } = require("sequelize");
     const { fn, col } = require("sequelize");
 
     // Calculate total revenue for the month
     const result = await Transactions.findOne({
       attributes: [
-        [fn('COALESCE', fn('SUM', col('total')), 0), 'totalRevenue']
+        [fn("COALESCE", fn("SUM", col("total")), 0), "totalRevenue"],
       ],
       where: {
         createdAt: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
+          [Op.between]: [startDate, endDate],
+        },
+      },
     });
 
     const totalRevenue = parseFloat(result.dataValues.totalRevenue) || 0;
@@ -234,13 +220,12 @@ async function getMonthlyRevenue(req, res) {
         month,
         totalRevenue,
         period: {
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0]
-        }
+          startDate: startDate.toISOString().split("T")[0],
+          endDate: endDate.toISOString().split("T")[0],
+        },
       },
     });
   } catch (error) {
-    console.error("Error getting monthly revenue:", error);
     res.status(500).json({
       status: "error",
       message: error.message,
@@ -253,7 +238,7 @@ async function getMonthlyRevenue(req, res) {
 async function checkMonthlyData(req, res) {
   try {
     const { month } = req.query; // Format: YYYY-MM
-    
+
     if (!month) {
       return res.status(400).json({
         status: "error",
@@ -264,19 +249,19 @@ async function checkMonthlyData(req, res) {
     }
 
     // Parse month and create date range
-    const [year, monthNum] = month.split('-');
+    const [year, monthNum] = month.split("-");
     const startDate = new Date(year, monthNum - 1, 1); // First day of month
     const endDate = new Date(year, monthNum, 0); // Last day of month
-    
+
     const { Op } = require("sequelize");
 
     // Check if there are any transactions in this month
     const transactionCount = await Transactions.count({
       where: {
         createdAt: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
+          [Op.between]: [startDate, endDate],
+        },
+      },
     });
 
     // Check if there are any inventory entries in this month
@@ -284,9 +269,9 @@ async function checkMonthlyData(req, res) {
     const inventoryCount = await Inventory.count({
       where: {
         entryDate: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
+          [Op.between]: [startDate, endDate],
+        },
+      },
     });
 
     const hasData = transactionCount > 0 || inventoryCount > 0;
@@ -299,11 +284,10 @@ async function checkMonthlyData(req, res) {
         month,
         hasData,
         transactionCount,
-        inventoryCount
+        inventoryCount,
       },
     });
   } catch (error) {
-    console.error("Error checking monthly data:", error);
     res.status(500).json({
       status: "error",
       message: error.message,

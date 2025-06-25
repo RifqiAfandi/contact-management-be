@@ -4,24 +4,24 @@ const imagekit = require("../lib/imagekit");
 // Helper function to calculate inventory status
 function calculateInventoryStatus(expiredDate, useDate) {
   if (useDate) {
-    return 'Terpakai';
+    return "Terpakai";
   }
-  
+
   if (!expiredDate) {
-    return 'Baik';
+    return "Baik";
   }
-  
+
   const now = new Date();
   const expiry = new Date(expiredDate);
   const diffTime = expiry - now;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 0) {
-    return 'Expired';
+    return "Expired";
   } else if (diffDays <= 7) {
-    return 'Segera Expired';
+    return "Segera Expired";
   } else {
-    return 'Baik';
+    return "Baik";
   }
 }
 
@@ -33,11 +33,23 @@ async function getAllInventory(req, res) {
     const offset = (page - 1) * limit;
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
-    const { itemName, entryDate, expiredDate, supplierName, status } = req.query;
+    const { itemName, entryDate, expiredDate, supplierName, status } =
+      req.query;
 
     // Validate sortField to prevent SQL injection
-    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice", "supplierName", "useDate", "status"];
-    const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
+    const allowedSortFields = [
+      "createdAt",
+      "entryDate",
+      "expiredDate",
+      "itemName",
+      "purchasePrice",
+      "supplierName",
+      "useDate",
+      "status",
+    ];
+    const validSortField = allowedSortFields.includes(sortField)
+      ? sortField
+      : "createdAt";
 
     // Build where clause
     const { Op } = require("sequelize");
@@ -95,13 +107,18 @@ async function getAllInventory(req, res) {
     });
 
     // Update status for each item and save to database
-    const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
-      const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
-      if (item.status !== calculatedStatus) {
-        await item.update({ status: calculatedStatus });
-      }
-      return { ...item.toJSON(), status: calculatedStatus };
-    }));
+    const updatedItems = await Promise.all(
+      inventoryItems.map(async (item) => {
+        const calculatedStatus = calculateInventoryStatus(
+          item.expiredDate,
+          item.useDate
+        );
+        if (item.status !== calculatedStatus) {
+          await item.update({ status: calculatedStatus });
+        }
+        return { ...item.toJSON(), status: calculatedStatus };
+      })
+    );
 
     const totalPages = Math.ceil(count / limit);
 
@@ -143,9 +160,15 @@ async function getAllInventory(req, res) {
 
 async function createInventory(req, res) {
   try {
-    console.log("📝 Request body:", req.body);
-    console.log("📁 Request file:", req.file);    const { itemName, purchasePrice, expiredDate, entryDate, userId, supplierName, useDate } =
-      req.body;
+    const {
+      itemName,
+      purchasePrice,
+      expiredDate,
+      entryDate,
+      userId,
+      supplierName,
+      useDate,
+    } = req.body;
 
     if (!itemName || !purchasePrice || !entryDate || !userId) {
       return res.status(400).json({
@@ -178,11 +201,8 @@ async function createInventory(req, res) {
             data: null,
           });
         }
-
         imageUrl = uploadImg.url;
-        console.log("✅ Image uploaded successfully:", imageUrl);
       } catch (uploadError) {
-        console.error("❌ ImageKit upload error:", uploadError);
         return res.status(500).json({
           status: "Failed",
           message: "Image upload failed: " + uploadError.message,
@@ -190,7 +210,8 @@ async function createInventory(req, res) {
           data: null,
         });
       }
-    }    const calculatedStatus = calculateInventoryStatus(expiredDate, useDate);
+    }
+    const calculatedStatus = calculateInventoryStatus(expiredDate, useDate);
 
     const newInventoryItem = await Inventory.create({
       itemName,
@@ -204,8 +225,6 @@ async function createInventory(req, res) {
       imageUrl,
     });
 
-    console.log("✅ Inventory item created:", newInventoryItem.id);
-
     res.status(201).json({
       status: "Success",
       message: "Inventory item created successfully",
@@ -213,7 +232,6 @@ async function createInventory(req, res) {
       data: newInventoryItem,
     });
   } catch (error) {
-    console.error("❌ Create inventory error:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,
@@ -225,9 +243,15 @@ async function createInventory(req, res) {
 
 async function updateInventory(req, res) {
   try {
-    console.log("📝 Update request body:", req.body);
-    console.log("📁 Update request file:", req.file);    const { id } = req.params;
-    const { itemName, purchasePrice, expiredDate, entryDate, supplierName, useDate } = req.body;
+    const { id } = req.params;
+    const {
+      itemName,
+      purchasePrice,
+      expiredDate,
+      entryDate,
+      supplierName,
+      useDate,
+    } = req.body;
 
     const inventoryItem = await Inventory.findByPk(id);
     if (!inventoryItem) {
@@ -244,14 +268,19 @@ async function updateInventory(req, res) {
       purchasePrice: purchasePrice
         ? parseInt(purchasePrice)
         : inventoryItem.purchasePrice,
-      expiredDate: expiredDate !== undefined ? expiredDate : inventoryItem.expiredDate,
+      expiredDate:
+        expiredDate !== undefined ? expiredDate : inventoryItem.expiredDate,
       entryDate: entryDate || inventoryItem.entryDate,
-      supplierName: supplierName !== undefined ? supplierName : inventoryItem.supplierName,
+      supplierName:
+        supplierName !== undefined ? supplierName : inventoryItem.supplierName,
       useDate: useDate !== undefined ? useDate : inventoryItem.useDate,
     };
 
     // Calculate status based on the updated data
-    updateData.status = calculateInventoryStatus(updateData.expiredDate, updateData.useDate);
+    updateData.status = calculateInventoryStatus(
+      updateData.expiredDate,
+      updateData.useDate
+    );
 
     if (req.file) {
       const file = req.file;
@@ -272,11 +301,8 @@ async function updateInventory(req, res) {
             data: null,
           });
         }
-
         updateData.imageUrl = uploadImg.url;
-        console.log("✅ New image uploaded:", uploadImg.url);
       } catch (uploadError) {
-        console.error("❌ ImageKit upload error:", uploadError);
         return res.status(500).json({
           status: "Failed",
           message: "Image upload failed: " + uploadError.message,
@@ -289,8 +315,6 @@ async function updateInventory(req, res) {
     await inventoryItem.update(updateData);
     const updatedItem = await Inventory.findByPk(id);
 
-    console.log("✅ Inventory item updated:", updatedItem.id);
-
     res.status(200).json({
       status: "Success",
       message: "Inventory item updated successfully",
@@ -298,7 +322,6 @@ async function updateInventory(req, res) {
       data: updatedItem,
     });
   } catch (error) {
-    console.error("❌ Update inventory error:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,
@@ -343,7 +366,7 @@ async function deleteInventory(req, res) {
 async function getMonthlyExpenses(req, res) {
   try {
     const { month } = req.query; // Format: YYYY-MM
-    
+
     if (!month) {
       return res.status(400).json({
         status: "error",
@@ -354,23 +377,23 @@ async function getMonthlyExpenses(req, res) {
     }
 
     // Parse month and create date range
-    const [year, monthNum] = month.split('-');
+    const [year, monthNum] = month.split("-");
     const startDate = new Date(year, monthNum - 1, 1); // First day of month
     const endDate = new Date(year, monthNum, 0); // Last day of month
-    
+
     const { Op } = require("sequelize");
     const { fn, col, literal } = require("sequelize");
 
     // Calculate total expenses for the month
     const result = await Inventory.findOne({
       attributes: [
-        [fn('COALESCE', fn('SUM', col('purchasePrice')), 0), 'totalExpenses']
+        [fn("COALESCE", fn("SUM", col("purchasePrice")), 0), "totalExpenses"],
       ],
       where: {
         entryDate: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
+          [Op.between]: [startDate, endDate],
+        },
+      },
     });
 
     const totalExpenses = parseFloat(result.dataValues.totalExpenses) || 0;
@@ -383,13 +406,12 @@ async function getMonthlyExpenses(req, res) {
         month,
         totalExpenses,
         period: {
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0]
-        }
+          startDate: startDate.toISOString().split("T")[0],
+          endDate: endDate.toISOString().split("T")[0],
+        },
       },
     });
   } catch (error) {
-    console.error("Error getting monthly expenses:", error);
     res.status(500).json({
       status: "error",
       message: error.message,
@@ -404,19 +426,23 @@ async function getAllInventoryNoPagination(req, res) {
   try {
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
-    const { itemName, entryDate, expiredDate, supplierName, status } = req.query;
-
-    console.log("🔍 getAllInventoryNoPagination - Query params:", {
-      itemName,
-      status,
-      supplierName,
-      sortField,
-      sortOrder
-    });
+    const { itemName, entryDate, expiredDate, supplierName, status } =
+      req.query;
 
     // Validate sortField to prevent SQL injection
-    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice", "supplierName", "useDate", "status"];
-    const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
+    const allowedSortFields = [
+      "createdAt",
+      "entryDate",
+      "expiredDate",
+      "itemName",
+      "purchasePrice",
+      "supplierName",
+      "useDate",
+      "status",
+    ];
+    const validSortField = allowedSortFields.includes(sortField)
+      ? sortField
+      : "createdAt";
 
     // Build where clause
     const { Op } = require("sequelize");
@@ -429,7 +455,6 @@ async function getAllInventoryNoPagination(req, res) {
     }
     if (status) {
       where.status = status;
-      console.log(`📊 Filtering by status: "${status}"`);
     }
     if (entryDate) {
       // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
@@ -470,28 +495,26 @@ async function getAllInventoryNoPagination(req, res) {
     const inventoryItems = await Inventory.findAll({
       where,
       order: orderClause,
-    });    // Update status for each item and save to database
-    const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
-      const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
-      if (item.status !== calculatedStatus) {
-        await item.update({ status: calculatedStatus });
-      }
-      return { ...item.toJSON(), status: calculatedStatus };
-    }));    console.log(`📦 All inventory items retrieved: ${updatedItems.length}`);
-    
-    if (status) {
-      console.log(`🔍 Status filter "${status}" applied - Found ${updatedItems.length} items`);
-      console.log("📋 Status breakdown:", updatedItems.reduce((acc, item) => {
-        acc[item.status] = (acc[item.status] || 0) + 1;
-        return acc;
-      }, {}));
-    }
+    }); // Update status for each item and save to database
+    const updatedItems = await Promise.all(
+      inventoryItems.map(async (item) => {
+        const calculatedStatus = calculateInventoryStatus(
+          item.expiredDate,
+          item.useDate
+        );
+        if (item.status !== calculatedStatus) {
+          await item.update({ status: calculatedStatus });
+        }
+        return { ...item.toJSON(), status: calculatedStatus };
+      })
+    );
 
     res.status(200).json({
       status: "Success",
-      message: updatedItems.length > 0 
-        ? "All inventory items retrieved successfully" 
-        : "No inventory items found",
+      message:
+        updatedItems.length > 0
+          ? "All inventory items retrieved successfully"
+          : "No inventory items found",
       isSuccess: true,
       data: updatedItems,
       totalItems: updatedItems.length,
@@ -509,7 +532,7 @@ async function getAllInventoryNoPagination(req, res) {
 async function checkMonthlyData(req, res) {
   try {
     const { month } = req.query; // Format: YYYY-MM
-    
+
     if (!month) {
       return res.status(400).json({
         status: "error",
@@ -520,19 +543,19 @@ async function checkMonthlyData(req, res) {
     }
 
     // Parse month and create date range
-    const [year, monthNum] = month.split('-');
+    const [year, monthNum] = month.split("-");
     const startDate = new Date(year, monthNum - 1, 1); // First day of month
     const endDate = new Date(year, monthNum, 0); // Last day of month
-    
+
     const { Op } = require("sequelize");
 
     // Check if inventory data exists for the month
     const inventoryCount = await Inventory.count({
       where: {
         entryDate: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
+          [Op.between]: [startDate, endDate],
+        },
+      },
     });
 
     const hasData = inventoryCount > 0;
@@ -546,13 +569,12 @@ async function checkMonthlyData(req, res) {
         hasData,
         inventoryCount,
         period: {
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0]
-        }
+          startDate: startDate.toISOString().split("T")[0],
+          endDate: endDate.toISOString().split("T")[0],
+        },
       },
     });
   } catch (error) {
-    console.error("Error checking monthly data:", error);
     res.status(500).json({
       status: "error",
       message: error.message,
@@ -570,14 +592,6 @@ async function getInventoryByMonth(req, res) {
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { itemName, status } = req.query;
 
-    console.log("🔍 getInventoryByMonth - Query params:", {
-      month,
-      itemName,
-      status,
-      sortField,
-      sortOrder
-    });
-
     if (!month) {
       return res.status(400).json({
         status: "error",
@@ -588,29 +602,35 @@ async function getInventoryByMonth(req, res) {
     }
 
     // Parse month and create date range
-    const [year, monthNum] = month.split('-');
+    const [year, monthNum] = month.split("-");
     const startDate = new Date(year, monthNum - 1, 1); // First day of month
     const endDate = new Date(year, monthNum, 0); // Last day of month
 
     // Validate sortField to prevent SQL injection
-    const allowedSortFields = ["createdAt", "entryDate", "expiredDate", "itemName", "purchasePrice"];
-    const validSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
+    const allowedSortFields = [
+      "createdAt",
+      "entryDate",
+      "expiredDate",
+      "itemName",
+      "purchasePrice",
+    ];
+    const validSortField = allowedSortFields.includes(sortField)
+      ? sortField
+      : "createdAt";
 
     // Build where clause
     const { Op } = require("sequelize");
     const where = {
       entryDate: {
-        [Op.between]: [startDate, endDate]
-      }
+        [Op.between]: [startDate, endDate],
+      },
     };
 
     if (itemName) {
       where.itemName = { [Op.like]: `%${itemName}%` };
     }
-
     if (status) {
       where.status = status;
-      console.log(`📊 Filtering monthly data by status: "${status}"`);
     }
 
     // Build order clause
@@ -620,28 +640,25 @@ async function getInventoryByMonth(req, res) {
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
     } else {
       orderClause = [[validSortField, sortOrder]];
-    }    // Query inventory items for the specified month
+    } // Query inventory items for the specified month
     const inventoryItems = await Inventory.findAll({
       where,
       order: orderClause,
     });
 
     // Update status for each item and save to database
-    const updatedItems = await Promise.all(inventoryItems.map(async (item) => {
-      const calculatedStatus = calculateInventoryStatus(item.expiredDate, item.useDate);
-      if (item.status !== calculatedStatus) {
-        await item.update({ status: calculatedStatus });
-      }
-      return { ...item.toJSON(), status: calculatedStatus };
-    }));    console.log(`📦 Monthly inventory items retrieved: ${updatedItems.length} for ${month}`);
-    
-    if (status) {
-      console.log(`🔍 Monthly status filter "${status}" applied - Found ${updatedItems.length} items`);
-      console.log("📋 Monthly status breakdown:", updatedItems.reduce((acc, item) => {
-        acc[item.status] = (acc[item.status] || 0) + 1;
-        return acc;
-      }, {}));
-    }
+    const updatedItems = await Promise.all(
+      inventoryItems.map(async (item) => {
+        const calculatedStatus = calculateInventoryStatus(
+          item.expiredDate,
+          item.useDate
+        );
+        if (item.status !== calculatedStatus) {
+          await item.update({ status: calculatedStatus });
+        }
+        return { ...item.toJSON(), status: calculatedStatus };
+      })
+    );
 
     res.status(200).json({
       status: "Success",
@@ -651,12 +668,11 @@ async function getInventoryByMonth(req, res) {
       totalItems: updatedItems.length,
       period: {
         month,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
-      }
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+      },
     });
   } catch (error) {
-    console.error("Error getting inventory by month:", error);
     res.status(500).json({
       status: "error",
       message: error.message,
@@ -671,55 +687,48 @@ async function getLowStockNotification(req, res) {
   try {
     const { Op, fn, col } = require("sequelize");
 
-    console.log('🔍 Analyzing inventory for low stock notification...');
-
     // First, get ALL inventory items grouped by itemName (including counts)
     const allInventoryItemCounts = await Inventory.findAll({
       attributes: [
-        'itemName',
-        [fn('COUNT', col('itemName')), 'itemCount'],
-        [fn('MIN', col('id')), 'sampleId'] // Get a sample record for additional info
+        "itemName",
+        [fn("COUNT", col("itemName")), "itemCount"],
+        [fn("MIN", col("id")), "sampleId"], // Get a sample record for additional info
       ],
       where: {
-        useDate: null // Only count available items (not used)
+        useDate: null, // Only count available items (not used)
       },
-      group: ['itemName'],
-      raw: true
+      group: ["itemName"],
+      raw: true,
     });
 
-    console.log(`📊 Found ${allInventoryItemCounts.length} unique item types in inventory`);
-
     // Check if there are any duplicates (items with count > 1)
-    const hasDuplicates = allInventoryItemCounts.some(item => parseInt(item.itemCount) > 1);
-    
+    const hasDuplicates = allInventoryItemCounts.some(
+      (item) => parseInt(item.itemCount) > 1
+    );
+
     let lowStockItemCounts;
-    
     if (!hasDuplicates) {
       // If no duplicates exist, ALL items should appear in low stock notification
-      console.log('🚨 No duplicates found - ALL items will appear in low stock notification');
       lowStockItemCounts = allInventoryItemCounts;
     } else {
       // If duplicates exist, use original logic (count < 3)
-      console.log('✅ Duplicates found - using standard logic (count < 3)');
-      lowStockItemCounts = allInventoryItemCounts.filter(item => parseInt(item.itemCount) < 3);
+      lowStockItemCounts = allInventoryItemCounts.filter(
+        (item) => parseInt(item.itemCount) < 3
+      );
     }
 
-    console.log(`📦 Low stock items to show: ${lowStockItemCounts.length}`);
-
     if (lowStockItemCounts.length === 0) {
-      console.log('✅ No low stock items found');
       return res.status(200).json({
         status: "Success",
         message: "No low stock items found",
         isSuccess: true,
         data: [],
-        logic: hasDuplicates ? "standard" : "no_duplicates"
+        logic: hasDuplicates ? "standard" : "no_duplicates",
       });
-    }    // Get detailed information for each low stock item
+    } // Get detailed information for each low stock item
     const lowStockItems = await Promise.all(
       lowStockItemCounts.map(async (item) => {
         const sampleItem = await Inventory.findByPk(item.sampleId);
-        console.log(`📦 Including in notification: "${item.itemName}" - Count: ${item.itemCount}`);
         return {
           id: sampleItem.id,
           itemName: item.itemName,
@@ -728,27 +737,26 @@ async function getLowStockNotification(req, res) {
           purchasePrice: sampleItem.purchasePrice,
           entryDate: sampleItem.entryDate,
           supplierName: sampleItem.supplierName,
-          status: 'Hampir Habis',
-          logic: hasDuplicates ? "standard" : "no_duplicates"
+          status: "Hampir Habis",
+          logic: hasDuplicates ? "standard" : "no_duplicates",
         };
       })
     );
 
     res.status(200).json({
       status: "Success",
-      message: hasDuplicates 
-        ? "Low stock items retrieved successfully (standard logic)" 
+      message: hasDuplicates
+        ? "Low stock items retrieved successfully (standard logic)"
         : "All items retrieved - no duplicates found (all items shown)",
       isSuccess: true,
       data: lowStockItems,
       totalItems: lowStockItems.length,
       logic: hasDuplicates ? "standard" : "no_duplicates",
-      explanation: hasDuplicates 
-        ? "Items with count < 3 are shown" 
-        : "No duplicates found - all items are shown"
+      explanation: hasDuplicates
+        ? "Items with count < 3 are shown"
+        : "No duplicates found - all items are shown",
     });
   } catch (error) {
-    console.error("Error getting low stock notification:", error);
     res.status(500).json({
       status: "error",
       message: error.message,
@@ -765,39 +773,38 @@ async function testLowStockLogic(req, res) {
 
     // Get all items grouped by itemName with counts
     const allItems = await Inventory.findAll({
-      attributes: [
-        'itemName',
-        [fn('COUNT', col('itemName')), 'itemCount']
-      ],
+      attributes: ["itemName", [fn("COUNT", col("itemName")), "itemCount"]],
       where: { useDate: null },
-      group: ['itemName'],
-      raw: true
+      group: ["itemName"],
+      raw: true,
     });
 
     // Check for duplicates
-    const hasDuplicates = allItems.some(item => parseInt(item.itemCount) > 1);
-    
+    const hasDuplicates = allItems.some((item) => parseInt(item.itemCount) > 1);
+
     // Show analysis
     const analysis = {
       totalUniqueItems: allItems.length,
       hasDuplicates,
       logic: hasDuplicates ? "standard" : "no_duplicates",
-      itemBreakdown: allItems.map(item => ({
+      itemBreakdown: allItems.map((item) => ({
         itemName: item.itemName,
         count: parseInt(item.itemCount),
-        wouldShowInNotification: hasDuplicates ? parseInt(item.itemCount) < 3 : true
-      }))
+        wouldShowInNotification: hasDuplicates
+          ? parseInt(item.itemCount) < 3
+          : true,
+      })),
     };
 
     res.status(200).json({
       status: "Success",
       message: "Low stock logic analysis",
-      data: analysis
+      data: analysis,
     });
   } catch (error) {
     res.status(500).json({
-      status: "error", 
-      message: error.message
+      status: "error",
+      message: error.message,
     });
   }
 }
