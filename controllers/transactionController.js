@@ -4,7 +4,6 @@ async function getAllTransactions(req, res) {
   try {
     const userId = req.user?.id;
 
-    // Build query options
     const queryOptions = {
       include: [
         {
@@ -16,7 +15,6 @@ async function getAllTransactions(req, res) {
       order: [["createdAt", "DESC"]],
     };
 
-    // If user is not admin, only show their transactions
     if (req.user?.role !== "admin") {
       queryOptions.where = { userId };
     }
@@ -54,7 +52,6 @@ async function createTransaction(req, res) {
       req.body;
     const userId = req.user?.id;
 
-    // Basic validation
     if (!item || !Array.isArray(item) || item.length === 0) {
       return res.status(400).json({
         status: "Failed",

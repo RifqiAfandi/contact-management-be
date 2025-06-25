@@ -3,7 +3,6 @@ const imagekit = require("../lib/imagekit");
 
 async function getAllProducts(req, res) {
   try {
-    // Query params
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -11,7 +10,6 @@ async function getAllProducts(req, res) {
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { productName, category, minPrice, maxPrice } = req.query;
 
-    // Build where clause
     const { Op } = require("sequelize");
     const where = {};
     if (productName) {
@@ -26,7 +24,6 @@ async function getAllProducts(req, res) {
       if (maxPrice) where.sellingPrice[Op.lte] = parseFloat(maxPrice);
     }
 
-    // Query with filters, sorting, and pagination
     const { count, rows: products } = await Products.findAndCountAll({
       where,
       limit,
@@ -68,14 +65,12 @@ async function getAllProducts(req, res) {
   }
 }
 
-// New function to get all products without pagination for cashier
 async function getAllProductsNoPagination(req, res) {
   try {
     const sortField = req.query.sortField || "id";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { productName, category, minPrice, maxPrice } = req.query;
 
-    // Build where clause
     const { Op } = require("sequelize");
     const where = {};
     if (productName) {
@@ -90,7 +85,6 @@ async function getAllProductsNoPagination(req, res) {
       if (maxPrice) where.sellingPrice[Op.lte] = parseFloat(maxPrice);
     }
 
-    // Query without pagination - get all products
     const products = await Products.findAll({
       where,
       order: [[sortField, sortOrder]],
@@ -121,7 +115,6 @@ async function createProduct(req, res) {
   try {
     const { productName, sellingPrice, category, userId } = req.body;
 
-    // Validate required fields
     if (!productName || !sellingPrice || !category || !userId) {
       return res.status(400).json({
         status: "Failed",

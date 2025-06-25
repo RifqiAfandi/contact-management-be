@@ -1,7 +1,6 @@
 const { Inventory } = require("../models");
 const imagekit = require("../lib/imagekit");
 
-// Helper function to calculate inventory status
 function calculateInventoryStatus(expiredDate, useDate) {
   if (useDate) {
     return "Terpakai";
@@ -27,7 +26,6 @@ function calculateInventoryStatus(expiredDate, useDate) {
 
 async function getAllInventory(req, res) {
   try {
-    // Query params
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -98,7 +96,6 @@ async function getAllInventory(req, res) {
       orderClause = [[validSortField, sortOrder]];
     }
 
-    // Query with filters, sorting, and pagination
     const { count, rows: inventoryItems } = await Inventory.findAndCountAll({
       where,
       limit,
