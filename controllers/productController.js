@@ -248,20 +248,7 @@ async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
 
-    // Validate ID format
-    if (!id || isNaN(parseInt(id))) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Invalid product ID",
-        isSuccess: false,
-        data: null,
-      });
-    }
-    const productId = parseInt(id);
-
-    // Check if product exists before delete
-    const product = await Products.findByPk(productId);
-
+    const product = await Products.findByPk(id);
     if (!product) {
       return res.status(404).json({
         status: "Failed",
@@ -271,19 +258,7 @@ async function deleteProduct(req, res) {
       });
     }
 
-    // Simple delete without transaction first
     await product.destroy();
-
-    // Verify deletion by checking if product still exists
-    const verifyDelete = await Products.findByPk(productId);
-    if (verifyDelete) {
-      return res.status(500).json({
-        status: "Failed",
-        message: "Failed to delete product - product still exists",
-        isSuccess: false,
-        data: null,
-      });
-    }
 
     res.status(200).json({
       status: "Success",
