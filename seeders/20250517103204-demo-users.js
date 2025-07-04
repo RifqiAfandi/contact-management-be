@@ -2,15 +2,15 @@
 const bcrypt = require("bcrypt");
 
 /** @type {import('sequelize-cli').Migration} */
-module.exports = {  async up(queryInterface, Sequelize) {
-    // Check if data already exists to prevent duplicates
+module.exports = {
+  async up(queryInterface, Sequelize) {
     const existingUsers = await queryInterface.sequelize.query(
       'SELECT COUNT(*) as count FROM "Users"',
       { type: queryInterface.sequelize.QueryTypes.SELECT }
     );
 
     if (existingUsers[0].count > 0) {
-      console.log('Users data already exists, skipping seed...');
+      console.log("Users data already exists, skipping seed...");
       return;
     }
 

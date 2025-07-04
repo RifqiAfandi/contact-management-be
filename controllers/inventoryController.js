@@ -34,7 +34,6 @@ async function getAllInventory(req, res) {
     const { itemName, entryDate, expiredDate, supplierName, status } =
       req.query;
 
-    // Validate sortField to prevent SQL injection
     const allowedSortFields = [
       "createdAt",
       "entryDate",
@@ -49,7 +48,6 @@ async function getAllInventory(req, res) {
       ? sortField
       : "createdAt";
 
-    // Build where clause
     const { Op } = require("sequelize");
     const where = {};
     if (itemName) {
@@ -62,7 +60,6 @@ async function getAllInventory(req, res) {
       where.status = status;
     }
     if (entryDate) {
-      // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
       if (req.query.entryDate_gte || req.query.entryDate_lte) {
         where.entryDate = {};
         if (req.query.entryDate_gte)
@@ -74,7 +71,6 @@ async function getAllInventory(req, res) {
       }
     }
     if (expiredDate) {
-      // expiredDate can be a single date, or range: expiredDate_gte, expiredDate_lte
       if (req.query.expiredDate_gte || req.query.expiredDate_lte) {
         where.expiredDate = {};
         if (req.query.expiredDate_gte)
@@ -86,10 +82,8 @@ async function getAllInventory(req, res) {
       }
     }
 
-    // Build order clause - for string fields, use COLLATE for better sorting
     let orderClause;
     if (validSortField === "itemName" || validSortField === "supplierName") {
-      // Use COLLATE for case-insensitive alphabetical sorting
       const { literal } = require("sequelize");
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
     } else {
@@ -103,7 +97,6 @@ async function getAllInventory(req, res) {
       order: orderClause,
     });
 
-    // Update status for each item and save to database
     const updatedItems = await Promise.all(
       inventoryItems.map(async (item) => {
         const calculatedStatus = calculateInventoryStatus(
@@ -273,7 +266,6 @@ async function updateInventory(req, res) {
       useDate: useDate !== undefined ? useDate : inventoryItem.useDate,
     };
 
-    // Calculate status based on the updated data
     updateData.status = calculateInventoryStatus(
       updateData.expiredDate,
       updateData.useDate
@@ -362,7 +354,7 @@ async function deleteInventory(req, res) {
 
 async function getMonthlyExpenses(req, res) {
   try {
-    const { month } = req.query; // Format: YYYY-MM
+    const { month } = req.query;
 
     if (!month) {
       return res.status(400).json({
@@ -373,15 +365,13 @@ async function getMonthlyExpenses(req, res) {
       });
     }
 
-    // Parse month and create date range
     const [year, monthNum] = month.split("-");
-    const startDate = new Date(year, monthNum - 1, 1); // First day of month
-    const endDate = new Date(year, monthNum, 0); // Last day of month
+    const startDate = new Date(year, monthNum - 1, 1);
+    const endDate = new Date(year, monthNum, 0);
 
     const { Op } = require("sequelize");
     const { fn, col, literal } = require("sequelize");
 
-    // Calculate total expenses for the month
     const result = await Inventory.findOne({
       attributes: [
         [fn("COALESCE", fn("SUM", col("purchasePrice")), 0), "totalExpenses"],
@@ -418,7 +408,6 @@ async function getMonthlyExpenses(req, res) {
   }
 }
 
-// New function to get all inventory items without pagination for warehouse
 async function getAllInventoryNoPagination(req, res) {
   try {
     const sortField = req.query.sortField || "createdAt";
@@ -426,7 +415,6 @@ async function getAllInventoryNoPagination(req, res) {
     const { itemName, entryDate, expiredDate, supplierName, status } =
       req.query;
 
-    // Validate sortField to prevent SQL injection
     const allowedSortFields = [
       "createdAt",
       "entryDate",
@@ -441,7 +429,6 @@ async function getAllInventoryNoPagination(req, res) {
       ? sortField
       : "createdAt";
 
-    // Build where clause
     const { Op } = require("sequelize");
     const where = {};
     if (itemName) {
@@ -454,7 +441,6 @@ async function getAllInventoryNoPagination(req, res) {
       where.status = status;
     }
     if (entryDate) {
-      // entryDate can be a single date, or range: entryDate_gte, entryDate_lte
       if (req.query.entryDate_gte || req.query.entryDate_lte) {
         where.entryDate = {};
         if (req.query.entryDate_gte)
@@ -466,7 +452,6 @@ async function getAllInventoryNoPagination(req, res) {
       }
     }
     if (expiredDate) {
-      // expiredDate can be a single date, or range: expiredDate_gte, expiredDate_lte
       if (req.query.expiredDate_gte || req.query.expiredDate_lte) {
         where.expiredDate = {};
         if (req.query.expiredDate_gte)
@@ -478,21 +463,18 @@ async function getAllInventoryNoPagination(req, res) {
       }
     }
 
-    // Build order clause - for string fields, use COLLATE for better sorting
     let orderClause;
     if (validSortField === "itemName" || validSortField === "supplierName") {
-      // Use COLLATE for case-insensitive alphabetical sorting
       const { literal } = require("sequelize");
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
     } else {
       orderClause = [[validSortField, sortOrder]];
     }
 
-    // Query without pagination - get all inventory items
     const inventoryItems = await Inventory.findAll({
       where,
       order: orderClause,
-    }); // Update status for each item and save to database
+    });
     const updatedItems = await Promise.all(
       inventoryItems.map(async (item) => {
         const calculatedStatus = calculateInventoryStatus(
@@ -525,10 +507,9 @@ async function getAllInventoryNoPagination(req, res) {
   }
 }
 
-// Function to check if data exists for a specific month
 async function checkMonthlyData(req, res) {
   try {
-    const { month } = req.query; // Format: YYYY-MM
+    const { month } = req.query;
 
     if (!month) {
       return res.status(400).json({
@@ -539,14 +520,12 @@ async function checkMonthlyData(req, res) {
       });
     }
 
-    // Parse month and create date range
     const [year, monthNum] = month.split("-");
-    const startDate = new Date(year, monthNum - 1, 1); // First day of month
-    const endDate = new Date(year, monthNum, 0); // Last day of month
+    const startDate = new Date(year, monthNum - 1, 1);
+    const endDate = new Date(year, monthNum, 0);
 
     const { Op } = require("sequelize");
 
-    // Check if inventory data exists for the month
     const inventoryCount = await Inventory.count({
       where: {
         entryDate: {
@@ -581,10 +560,9 @@ async function checkMonthlyData(req, res) {
   }
 }
 
-// Function to get inventory items by month
 async function getInventoryByMonth(req, res) {
   try {
-    const { month } = req.query; // Format: YYYY-MM
+    const { month } = req.query;
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? "ASC" : "DESC";
     const { itemName, status } = req.query;
@@ -598,12 +576,10 @@ async function getInventoryByMonth(req, res) {
       });
     }
 
-    // Parse month and create date range
     const [year, monthNum] = month.split("-");
-    const startDate = new Date(year, monthNum - 1, 1); // First day of month
-    const endDate = new Date(year, monthNum, 0); // Last day of month
+    const startDate = new Date(year, monthNum - 1, 1);
+    const endDate = new Date(year, monthNum, 0);
 
-    // Validate sortField to prevent SQL injection
     const allowedSortFields = [
       "createdAt",
       "entryDate",
@@ -615,7 +591,6 @@ async function getInventoryByMonth(req, res) {
       ? sortField
       : "createdAt";
 
-    // Build where clause
     const { Op } = require("sequelize");
     const where = {
       entryDate: {
@@ -630,20 +605,18 @@ async function getInventoryByMonth(req, res) {
       where.status = status;
     }
 
-    // Build order clause
     let orderClause;
     if (validSortField === "itemName") {
       const { literal } = require("sequelize");
       orderClause = [[literal(`${validSortField} COLLATE NOCASE`), sortOrder]];
     } else {
       orderClause = [[validSortField, sortOrder]];
-    } // Query inventory items for the specified month
+    }
     const inventoryItems = await Inventory.findAll({
       where,
       order: orderClause,
     });
 
-    // Update status for each item and save to database
     const updatedItems = await Promise.all(
       inventoryItems.map(async (item) => {
         const calculatedStatus = calculateInventoryStatus(
@@ -679,36 +652,31 @@ async function getInventoryByMonth(req, res) {
   }
 }
 
-// Function to get low stock notification - items with count < 3 or all items if no duplicates
 async function getLowStockNotification(req, res) {
   try {
     const { Op, fn, col } = require("sequelize");
 
-    // First, get ALL inventory items grouped by itemName (including counts)
     const allInventoryItemCounts = await Inventory.findAll({
       attributes: [
         "itemName",
         [fn("COUNT", col("itemName")), "itemCount"],
-        [fn("MIN", col("id")), "sampleId"], // Get a sample record for additional info
+        [fn("MIN", col("id")), "sampleId"],
       ],
       where: {
-        useDate: null, // Only count available items (not used)
+        useDate: null,
       },
       group: ["itemName"],
       raw: true,
     });
 
-    // Check if there are any duplicates (items with count > 1)
     const hasDuplicates = allInventoryItemCounts.some(
       (item) => parseInt(item.itemCount) > 1
     );
 
     let lowStockItemCounts;
     if (!hasDuplicates) {
-      // If no duplicates exist, ALL items should appear in low stock notification
       lowStockItemCounts = allInventoryItemCounts;
     } else {
-      // If duplicates exist, use original logic (count < 3)
       lowStockItemCounts = allInventoryItemCounts.filter(
         (item) => parseInt(item.itemCount) < 3
       );
@@ -722,7 +690,7 @@ async function getLowStockNotification(req, res) {
         data: [],
         logic: hasDuplicates ? "standard" : "no_duplicates",
       });
-    } // Get detailed information for each low stock item
+    }
     const lowStockItems = await Promise.all(
       lowStockItemCounts.map(async (item) => {
         const sampleItem = await Inventory.findByPk(item.sampleId);
@@ -763,49 +731,6 @@ async function getLowStockNotification(req, res) {
   }
 }
 
-// Test function to demonstrate the low stock logic (for development/testing only)
-async function testLowStockLogic(req, res) {
-  try {
-    const { fn, col } = require("sequelize");
-
-    // Get all items grouped by itemName with counts
-    const allItems = await Inventory.findAll({
-      attributes: ["itemName", [fn("COUNT", col("itemName")), "itemCount"]],
-      where: { useDate: null },
-      group: ["itemName"],
-      raw: true,
-    });
-
-    // Check for duplicates
-    const hasDuplicates = allItems.some((item) => parseInt(item.itemCount) > 1);
-
-    // Show analysis
-    const analysis = {
-      totalUniqueItems: allItems.length,
-      hasDuplicates,
-      logic: hasDuplicates ? "standard" : "no_duplicates",
-      itemBreakdown: allItems.map((item) => ({
-        itemName: item.itemName,
-        count: parseInt(item.itemCount),
-        wouldShowInNotification: hasDuplicates
-          ? parseInt(item.itemCount) < 3
-          : true,
-      })),
-    };
-
-    res.status(200).json({
-      status: "Success",
-      message: "Low stock logic analysis",
-      data: analysis,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: error.message,
-    });
-  }
-}
-
 module.exports = {
   getAllInventory,
   getAllInventoryNoPagination,
@@ -816,5 +741,4 @@ module.exports = {
   checkMonthlyData,
   getInventoryByMonth,
   getLowStockNotification,
-  testLowStockLogic,
 };
