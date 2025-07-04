@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
 const AuthController = require("../controllers/authController");
 const { authenticateToken, isAdmin } = require("../middlewares/authMiddleware");
 const { uploader } = require("../middlewares/uploader");
@@ -13,7 +12,6 @@ router.post(
   AuthController.createUser
 );
 router.post("/login", AuthController.login);
-router.post("/logout", authenticateToken, AuthController.logout);
 router.get("/users", authenticateToken, isAdmin, AuthController.getAllUser);
 router.get(
   "/users/:id",
