@@ -265,9 +265,34 @@ async function deleteUser(req, res) {
   }
 }
 
+async function logout(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    res.clearCookie("token");
+    res.clearCookie("refreshToken");
+    res.clearCookie("connect.sid");
+
+    res.status(200).json({
+      status: "success",
+      message: "Logout successful",
+      isSuccess: true,
+      data: null,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+}
+
 module.exports = {
   createUser,
   login,
+  logout,
   getAllUser,
   getUserById,
   updateUser,
